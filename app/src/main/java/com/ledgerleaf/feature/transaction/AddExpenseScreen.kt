@@ -9,19 +9,22 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledgerleaf.core.ui.components.LedgerLeafTopBar
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun AddExpenseScreen(
     onSaved: () -> Unit,
+    templateExpenseId: String? = null,
     viewModel: AddExpenseViewModel = hiltViewModel()
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val subcategories by viewModel.subcategories.collectAsStateWithLifecycle()
     val paymentMethods by viewModel.paymentMethods.collectAsStateWithLifecycle()
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
+    val initialValues by viewModel.initialValues.collectAsStateWithLifecycle()
+
+    LaunchedEffect(templateExpenseId) {
+        viewModel.loadTemplate(templateExpenseId)
+    }
 
     LaunchedEffect(saveState) {
         if (saveState is SaveState.Saved) {
@@ -33,10 +36,7 @@ fun AddExpenseScreen(
     Column(Modifier.fillMaxSize()) {
         LedgerLeafTopBar("Add Expense")
         ExpenseEditorForm(
-            initialValues = ExpenseEditorInitialValues(
-                dateText = LocalDate.now().toString(),
-                timeText = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-            ),
+            initialValues = initialValues,
             categories = categories,
             subcategories = subcategories,
             paymentMethods = paymentMethods,

@@ -13,6 +13,13 @@ sealed class LedgerLeafDestination(
     data object Archive : LedgerLeafDestination("archive", "Archive")
     data object RecycleBin : LedgerLeafDestination("recycle_bin", "Recycle Bin")
     data object Budgets : LedgerLeafDestination("budgets", "Budgets")
+    data object Favorites : LedgerLeafDestination("favorites", "Favorites")
+    data object Recurring : LedgerLeafDestination("recurring", "Recurring")
+    data object MonthlyClosing : LedgerLeafDestination("monthly_closing", "Monthly Closing")
+
+    data object AddExpenseFromTemplate : LedgerLeafDestination("add_expense/from/{expenseId}", "Add from expense") {
+        fun createRoute(expenseId: String) = "add_expense/from/$expenseId"
+    }
 
     data object ExpenseDetails : LedgerLeafDestination("expense/{expenseId}", "Expense") {
         fun createRoute(expenseId: String) = "expense/$expenseId"

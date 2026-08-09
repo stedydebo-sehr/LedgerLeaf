@@ -9,6 +9,7 @@ import com.ledgerleaf.domain.model.Subcategory
 import com.ledgerleaf.domain.repository.CategoryRepository
 import com.ledgerleaf.domain.repository.NewExpense
 import com.ledgerleaf.domain.repository.PaymentMethodRepository
+import com.ledgerleaf.domain.repository.ExpenseRepository
 import com.ledgerleaf.domain.repository.SettingsRepository
 import com.ledgerleaf.domain.usecase.AddExpenseUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +33,7 @@ class AddExpenseViewModel @Inject constructor(
     private val categoriesRepository: CategoryRepository,
     private val settingsRepository: SettingsRepository,
     private val paymentMethodsRepository: PaymentMethodRepository,
+    private val expenseRepository: ExpenseRepository,
     private val addExpense: AddExpenseUseCase
 ) : ViewModel() {
     val categories: StateFlow<List<Category>> =
@@ -53,6 +55,9 @@ class AddExpenseViewModel @Inject constructor(
             if (id == null) flowOf(emptyList()) else categoriesRepository.observeSubcategories(id)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _initialValues = MutableStateFlow(defaultInitialValues())
+    val initialValues: StateFlow<ExpenseEditorInitialValues> = _initialValues
+
     private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
     val saveState: StateFlow<SaveState> = _saveState
 
@@ -60,6 +65,27 @@ class AddExpenseViewModel @Inject constructor(
         viewModelScope.launch {
             categoriesRepository.ensureSystemDefaults()
             paymentMethodsRepository.ensureSystemDefaults()
+        }
+    }
+
+
+    fun loadTemplate(expenseId: String?) {
+        if (expenseId.isNullOrBlank()) return
+        viewModelScope.launch {
+            val expense = expenseRepository.getExpense(expenseId) ?: return@launch
+            selectedCategoryId.value = expense.category.id
+            _initialValues.value = ExpenseEditorInitialValues(
+                amount = java.math.BigDecimal.valueOf(expense.amountMinor, 2).stripTrailingZeros().toPlainString(),
+                categoryId = expense.category.id,
+                subcategoryIds = expense.subcategories.map { it.id },
+                paymentMethodId = expense.paymentMethod.id,
+                notes = expense.notes,
+                dateText = LocalDate.now().toString(),
+                timeText = LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
+                favorite = expense.isFavorite,
+                recurring = expense.isRecurring,
+                recurringFrequency = expense.recurringFrequency ?: "MONTHLY"
+            )
         }
     }
 
@@ -131,6 +157,11 @@ class AddExpenseViewModel @Inject constructor(
         _saveState.value = SaveState.Idle
     }
 }
+
+private fun defaultInitialValues() = ExpenseEditorInitialValues(
+    dateText = LocalDate.now().toString(),
+    timeText = LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+)
 
 internal fun parseOccurredAt(dateText: String, timeText: String): Long? =
     runCatching {

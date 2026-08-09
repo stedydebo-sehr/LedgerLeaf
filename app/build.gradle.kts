@@ -14,8 +14,8 @@ android {
         applicationId = "com.ledgerleaf"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0-sprint3"
+        versionCode = 10
+        versionName = "0.10.0-sprint10"
     }
 
     buildFeatures { compose = true; buildConfig = true }

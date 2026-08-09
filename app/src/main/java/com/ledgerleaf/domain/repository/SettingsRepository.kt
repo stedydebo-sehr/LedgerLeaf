@@ -9,5 +9,6 @@ interface SettingsRepository {
     suspend fun setThemeMode(mode: ThemeMode)
     suspend fun setCurrencyCode(code: String)
     suspend fun setMonthlyBudgetMinor(amountMinor: Long?)
+    suspend fun setMonthlyIncomeMinor(amountMinor: Long?)
     suspend fun setMonthStartDay(day: Int)
 }

@@ -25,6 +25,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val themeMode = stringPreferencesKey("theme_mode")
         val currencyCode = stringPreferencesKey("currency_code")
         val monthlyBudgetMinor = longPreferencesKey("monthly_budget_minor")
+        val monthlyIncomeMinor = longPreferencesKey("monthly_income_minor")
         val monthStartDay = intPreferencesKey("month_start_day")
     }
 
@@ -34,6 +35,7 @@ class DataStoreSettingsRepository @Inject constructor(
                 .getOrDefault(ThemeMode.SYSTEM),
             currencyCode = values[Keys.currencyCode] ?: "INR",
             monthlyBudgetMinor = values[Keys.monthlyBudgetMinor],
+            monthlyIncomeMinor = values[Keys.monthlyIncomeMinor],
             monthStartDay = (values[Keys.monthStartDay] ?: 1).coerceIn(1, 28)
         )
     }
@@ -50,6 +52,12 @@ class DataStoreSettingsRepository @Inject constructor(
     override suspend fun setMonthlyBudgetMinor(amountMinor: Long?) {
         context.ledgerLeafDataStore.edit {
             if (amountMinor == null) it.remove(Keys.monthlyBudgetMinor) else it[Keys.monthlyBudgetMinor] = amountMinor.coerceAtLeast(0)
+        }
+    }
+
+    override suspend fun setMonthlyIncomeMinor(amountMinor: Long?) {
+        context.ledgerLeafDataStore.edit {
+            if (amountMinor == null) it.remove(Keys.monthlyIncomeMinor) else it[Keys.monthlyIncomeMinor] = amountMinor.coerceAtLeast(0)
         }
     }
 

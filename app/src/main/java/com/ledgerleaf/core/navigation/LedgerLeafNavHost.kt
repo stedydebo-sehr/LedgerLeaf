@@ -28,6 +28,9 @@ import com.ledgerleaf.feature.archive.ArchiveScreen
 import com.ledgerleaf.feature.budget.BudgetsScreen
 import com.ledgerleaf.feature.dashboard.DashboardScreen
 import com.ledgerleaf.feature.history.HistoryScreen
+import com.ledgerleaf.feature.monthlyclosing.MonthlyClosingScreen
+import com.ledgerleaf.feature.favorites.FavoritesScreen
+import com.ledgerleaf.feature.recurring.RecurringScreen
 import com.ledgerleaf.feature.recyclebin.RecycleBinScreen
 import com.ledgerleaf.feature.reports.ReportsScreen
 import com.ledgerleaf.feature.search.SearchScreen
@@ -98,8 +101,14 @@ fun LedgerLeafNavHost() {
             NavHost(navController, startDestination = LedgerLeafDestination.Dashboard.route) {
                 composable(LedgerLeafDestination.Dashboard.route) {
                     DashboardScreen(
-                        { navController.navigate(LedgerLeafDestination.Reports.route) },
-                        { navController.navigate(LedgerLeafDestination.Settings.route) }
+                        onReportsClick = { navController.navigate(LedgerLeafDestination.Reports.route) },
+                        onSettingsClick = { navController.navigate(LedgerLeafDestination.Settings.route) },
+                        onExpenseClick = { expenseId ->
+                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId))
+                        },
+                        onHistoryClick = { navController.navigate(LedgerLeafDestination.History.route) },
+                        onFavoritesClick = { navController.navigate(LedgerLeafDestination.Favorites.route) },
+                        onRecurringClick = { navController.navigate(LedgerLeafDestination.Recurring.route) }
                     )
                 }
                 composable(LedgerLeafDestination.History.route) {
@@ -111,6 +120,12 @@ fun LedgerLeafNavHost() {
                 }
                 composable(LedgerLeafDestination.AddExpense.route) {
                     AddExpenseScreen(onSaved = { navController.popBackStack() })
+                }
+                composable(LedgerLeafDestination.AddExpenseFromTemplate.route) { backStackEntry ->
+                    AddExpenseScreen(
+                        onSaved = { navController.popBackStack() },
+                        templateExpenseId = backStackEntry.arguments?.getString("expenseId")
+                    )
                 }
                 composable(LedgerLeafDestination.ExpenseDetails.route) {
                     ExpenseDetailsScreen(
@@ -135,13 +150,39 @@ fun LedgerLeafNavHost() {
                         { navController.navigate(LedgerLeafDestination.Search.route) },
                         { navController.navigate(LedgerLeafDestination.Archive.route) },
                         { navController.navigate(LedgerLeafDestination.RecycleBin.route) },
-                        { navController.navigate(LedgerLeafDestination.Budgets.route) }
+                        { navController.navigate(LedgerLeafDestination.Budgets.route) },
+                        { navController.navigate(LedgerLeafDestination.Favorites.route) },
+                        { navController.navigate(LedgerLeafDestination.Recurring.route) },
+                        { navController.navigate(LedgerLeafDestination.MonthlyClosing.route) }
                     )
                 }
-                composable(LedgerLeafDestination.Search.route) { SearchScreen() }
+                composable(LedgerLeafDestination.Search.route) {
+                    SearchScreen(
+                        onExpenseClick = { expenseId ->
+                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId))
+                        }
+                    )
+                }
                 composable(LedgerLeafDestination.Archive.route) { ArchiveScreen() }
                 composable(LedgerLeafDestination.RecycleBin.route) { RecycleBinScreen() }
                 composable(LedgerLeafDestination.Budgets.route) { BudgetsScreen() }
+                composable(LedgerLeafDestination.Favorites.route) {
+                    FavoritesScreen(
+                        onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) },
+                        onReuseExpense = { navController.navigate(LedgerLeafDestination.AddExpenseFromTemplate.createRoute(it)) }
+                    )
+                }
+                composable(LedgerLeafDestination.MonthlyClosing.route) {
+                    MonthlyClosingScreen(
+                        onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) }
+                    )
+                }
+                composable(LedgerLeafDestination.Recurring.route) {
+                    RecurringScreen(
+                        onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) },
+                        onReviewExpense = { navController.navigate(LedgerLeafDestination.AddExpenseFromTemplate.createRoute(it)) }
+                    )
+                }
             }
         }
     }

@@ -34,12 +34,18 @@ fun SettingsScreen(
     onArchiveClick: () -> Unit,
     onRecycleBinClick: () -> Unit,
     onBudgetsClick: () -> Unit,
+    onFavoritesClick: () -> Unit,
+    onRecurringClick: () -> Unit,
+    onMonthlyClosingClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
     var currency by remember(preferences.currencyCode) { mutableStateOf(preferences.currencyCode) }
     var budget by remember(preferences.monthlyBudgetMinor) {
         mutableStateOf(preferences.monthlyBudgetMinor?.let { "%.2f".format(it / 100.0) } ?: "")
+    }
+    var income by remember(preferences.monthlyIncomeMinor) {
+        mutableStateOf(preferences.monthlyIncomeMinor?.let { "%.2f".format(it / 100.0) } ?: "")
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -72,6 +78,17 @@ fun SettingsScreen(
             Button(onClick = { viewModel.setMonthlyBudget(budget) }) { Text("Save budget") }
             TextButton(onClick = { budget = ""; viewModel.clearMonthlyBudget() }) { Text("Clear") }
         }
+        OutlinedTextField(
+            value = income,
+            onValueChange = { income = it.filter { ch -> ch.isDigit() || ch == '.' } },
+            label = { Text("Monthly income (optional)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+        )
+        Row(Modifier.padding(horizontal = 16.dp)) {
+            Button(onClick = { viewModel.setMonthlyIncome(income) }) { Text("Save income") }
+            TextButton(onClick = { income = ""; viewModel.clearMonthlyIncome() }) { Text("Clear") }
+        }
         Text("Monthly period starts on day ${preferences.monthStartDay}", modifier = Modifier.padding(16.dp))
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             listOf(1, 5, 10, 15, 20, 25, 28).forEach { day ->
@@ -81,6 +98,9 @@ fun SettingsScreen(
         HorizontalDivider()
         SectionTitle("Data & tools")
         SettingsEntry("Search", onSearchClick)
+        SettingsEntry("Favorites & Frequently Used", onFavoritesClick)
+        SettingsEntry("Recurring Expenses", onRecurringClick)
+        SettingsEntry("Monthly Closing", onMonthlyClosingClick)
         SettingsEntry("Budgets", onBudgetsClick)
         SettingsEntry("Archive", onArchiveClick)
         SettingsEntry("Recycle Bin", onRecycleBinClick)

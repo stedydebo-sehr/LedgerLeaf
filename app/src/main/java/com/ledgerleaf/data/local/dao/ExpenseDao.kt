@@ -21,6 +21,10 @@ interface ExpenseDao {
     fun observeActiveExpensesInRange(from: Long, to: Long): Flow<List<ExpenseWithDetails>>
 
     @Transaction
+    @Query("SELECT * FROM expenses WHERE deletedAtEpochMillis IS NOT NULL ORDER BY deletedAtEpochMillis DESC")
+    fun observeDeletedExpenses(): Flow<List<ExpenseWithDetails>>
+
+    @Transaction
     @Query("SELECT * FROM expenses WHERE id = :id LIMIT 1")
     suspend fun getExpense(id: String): ExpenseWithDetails?
 
@@ -42,8 +46,11 @@ interface ExpenseDao {
     @Query("UPDATE expenses SET deletedAtEpochMillis = :deletedAt, updatedAtEpochMillis = :updatedAt WHERE id = :id AND deletedAtEpochMillis IS NULL")
     suspend fun softDelete(id: String, deletedAt: Long, updatedAt: Long)
 
-    @Query("UPDATE expenses SET deletedAtEpochMillis = NULL, updatedAtEpochMillis = :updatedAt WHERE id = :id")
+    @Query("UPDATE expenses SET deletedAtEpochMillis = NULL, updatedAtEpochMillis = :updatedAt WHERE id = :id AND deletedAtEpochMillis IS NOT NULL")
     suspend fun restore(id: String, updatedAt: Long)
+
+    @Query("DELETE FROM expenses WHERE deletedAtEpochMillis IS NOT NULL AND deletedAtEpochMillis < :cutoff")
+    suspend fun purgeDeletedBefore(cutoff: Long)
 
     @Transaction
     suspend fun insertExpenseWithSubcategories(expense: ExpenseEntity, subcategoryIds: List<String>) {

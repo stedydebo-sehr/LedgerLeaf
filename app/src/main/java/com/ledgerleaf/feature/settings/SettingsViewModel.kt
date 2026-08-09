@@ -27,6 +27,11 @@ class SettingsViewModel @Inject constructor(
         repository.setMonthlyBudgetMinor(minor)
     }
     fun clearMonthlyBudget() = viewModelScope.launch { repository.setMonthlyBudgetMinor(null) }
+    fun setMonthlyIncome(text: String) = viewModelScope.launch {
+        val minor = text.toBigDecimalOrNull()?.movePointRight(2)?.longValueExactOrNull()
+        repository.setMonthlyIncomeMinor(minor)
+    }
+    fun clearMonthlyIncome() = viewModelScope.launch { repository.setMonthlyIncomeMinor(null) }
     fun setMonthStartDay(day: Int) = viewModelScope.launch { repository.setMonthStartDay(day) }
 }
 

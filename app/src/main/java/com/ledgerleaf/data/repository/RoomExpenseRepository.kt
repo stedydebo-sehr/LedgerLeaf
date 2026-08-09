@@ -9,6 +9,7 @@ import com.ledgerleaf.domain.model.CategorySelectionMode
 import com.ledgerleaf.domain.model.Expense
 import com.ledgerleaf.domain.model.PaymentMethod
 import com.ledgerleaf.domain.model.Subcategory
+import com.ledgerleaf.domain.repository.DeletedExpense
 import com.ledgerleaf.domain.repository.ExpenseRepository
 import com.ledgerleaf.domain.repository.NewExpense
 import javax.inject.Inject
@@ -26,6 +27,13 @@ class RoomExpenseRepository @Inject constructor(
 
     override fun observeActiveExpensesInRange(fromEpochMillis: Long, toEpochMillis: Long): Flow<List<Expense>> =
         dao.observeActiveExpensesInRange(fromEpochMillis, toEpochMillis).map { list -> list.map { it.toDomain() } }
+
+    override fun observeDeletedExpenses(): Flow<List<DeletedExpense>> =
+        dao.observeDeletedExpenses().map { list ->
+            list.mapNotNull { item ->
+                item.expense.deletedAtEpochMillis?.let { deletedAt -> DeletedExpense(item.toDomain(), deletedAt) }
+            }
+        }
 
     override suspend fun getExpense(id: String): Expense? = dao.getExpense(id)?.toDomain()
 
@@ -80,6 +88,10 @@ class RoomExpenseRepository @Inject constructor(
 
     override suspend fun restoreExpense(id: String) {
         dao.restore(id, System.currentTimeMillis())
+    }
+
+    override suspend fun purgeDeletedBefore(cutoffEpochMillis: Long) {
+        dao.purgeDeletedBefore(cutoffEpochMillis)
     }
 
     override suspend fun getActiveTotalMinor(fromEpochMillis: Long, toEpochMillis: Long): Long =

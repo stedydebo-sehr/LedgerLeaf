@@ -1,10 +1,14 @@
 # Decisions
 - Android 12 / API 31 minimum.
 - Compose UI only; Material 3.
-- Room only local database.
+- Room is the only local database.
+- Preferences DataStore is used only for lightweight app settings, not finance records.
 - Hilt DI; KSP code generation; no kapt.
-- AGP 9 built-in Kotlin.
-- JDK 17 baseline.
-- UUID identity strategy.
+- Locked toolchain: Gradle 8.13, AGP 8.13.2, Kotlin 2.3.21, KSP 2.3.11, Hilt 2.58, JDK 17.
+- UUID identity strategy for persisted/domain entities.
+- Monetary values are stored as integer minor units (for INR, paise) rather than floating point.
+- System categories are immutable defaults; custom categories use generated UUIDs.
 - Completely offline; no login, ads, analytics, or tracking.
 - Approved cream/brown/deep-green ledger theme and dark forest counterpart are preserved.
+- Expense notes are mandatory.
+- Expense deletion/archive fields are modeled for later Recycle Bin and Archive stories.

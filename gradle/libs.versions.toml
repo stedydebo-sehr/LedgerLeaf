@@ -10,6 +10,7 @@ navigation = "2.9.8"
 hilt = "2.58"
 hiltNavigationCompose = "1.2.0"
 room = "2.8.4"
+datastore = "1.2.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -35,6 +36,7 @@ androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-com
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

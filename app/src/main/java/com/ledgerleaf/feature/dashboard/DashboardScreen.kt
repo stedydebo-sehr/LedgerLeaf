@@ -625,26 +625,41 @@ private fun SideTabs(
                 contentAlignment = Alignment.Center
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         tab.glyph,
+                        modifier = Modifier.height(18.dp),
                         fontSize = 14.sp,
+                        lineHeight = 14.sp,
                         color = if (active) activeInk else inactiveInk,
                         maxLines = 1
                     )
-                    Text(
-                        text = tab.label.uppercase(),
-                        modifier = Modifier.rotate(90f).requiredWidth(58.dp),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp,
-                        textAlign = TextAlign.Center,
-                        color = if (active) activeInk else inactiveInk,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(42.dp)
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = tab.label.uppercase(),
+                            modifier = Modifier
+                                .rotate(90f)
+                                .requiredWidth(56.dp),
+                            fontSize = 9.5.sp,
+                            lineHeight = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                            color = if (active) activeInk else inactiveInk,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
             }
         }

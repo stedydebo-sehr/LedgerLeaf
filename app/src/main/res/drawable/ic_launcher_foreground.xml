@@ -1,4 +1,9 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#245C3A" android:pathData="M54,18 C75,25 87,42 83,60 C79,79 62,89 44,83 C29,78 21,64 24,49 C27,35 38,24 54,18 Z" />
-    <path android:fillColor="#F4EAD2" android:pathData="M35,68 C45,59 54,49 73,37 C61,52 52,63 43,76 Z" />
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:left="14dp"
+        android:top="14dp"
+        android:right="14dp"
+        android:bottom="14dp"
+        android:drawable="@drawable/ledgerleaf_logo_light" />
+</layer-list>

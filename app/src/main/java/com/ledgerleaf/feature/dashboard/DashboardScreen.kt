@@ -1,6 +1,7 @@
 package com.ledgerleaf.feature.dashboard
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ledgerleaf.R
 import com.ledgerleaf.core.ui.theme.DarkMarginLine
 import com.ledgerleaf.core.ui.theme.DarkSpiralMetal
 import com.ledgerleaf.core.ui.theme.LedgerAmber
@@ -163,22 +167,17 @@ private fun LedgerHeader(onReportsClick: () -> Unit, onSettingsClick: () -> Unit
 
 @Composable
 private fun LeafMark() {
-    Canvas(Modifier.size(31.dp).semantics { contentDescription = "LedgerLeaf leaf" }) {
-        val green = LedgerDeepGreen
-        drawOval(
-            color = green,
-            topLeft = Offset(size.width * .14f, size.height * .12f),
-            size = androidx.compose.ui.geometry.Size(size.width * .66f, size.height * .76f),
-            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
-        )
-        drawLine(
-            color = green,
-            start = Offset(size.width * .22f, size.height * .80f),
-            end = Offset(size.width * .72f, size.height * .27f),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-    }
+    val isDark = MaterialTheme.colorScheme.background.red < 0.15f
+    Image(
+        painter = painterResource(
+            if (isDark) R.drawable.ledgerleaf_logo_dark else R.drawable.ledgerleaf_logo_light
+        ),
+        contentDescription = "LedgerLeaf logo",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(9.dp))
+    )
 }
 
 @Composable

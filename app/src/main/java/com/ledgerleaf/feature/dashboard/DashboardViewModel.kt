@@ -65,6 +65,7 @@ class DashboardViewModel @Inject constructor(
         }
 
         DashboardUiState(
+            periodTitle = period.start.format(DateTimeFormatter.ofPattern("MMMM yyyy")).uppercase(),
             periodLabel = periodLabel(period),
             monthTotalMinor = total,
             transactionCount = monthly.size,
@@ -121,6 +122,7 @@ private fun mostFrequentLabel(expenses: List<Expense>): String? = expenses
     ?.key
 
 data class DashboardUiState(
+    val periodTitle: String = "CURRENT LEDGER",
     val periodLabel: String = "Current month",
     val monthTotalMinor: Long = 0,
     val transactionCount: Int = 0,

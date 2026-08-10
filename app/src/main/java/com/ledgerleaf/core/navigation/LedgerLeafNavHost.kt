@@ -1,27 +1,36 @@
 package com.ledgerleaf.core.navigation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -32,9 +41,9 @@ import com.ledgerleaf.feature.archive.ArchiveScreen
 import com.ledgerleaf.feature.backup.BackupScreen
 import com.ledgerleaf.feature.budget.BudgetsScreen
 import com.ledgerleaf.feature.dashboard.DashboardScreen
+import com.ledgerleaf.feature.favorites.FavoritesScreen
 import com.ledgerleaf.feature.history.HistoryScreen
 import com.ledgerleaf.feature.monthlyclosing.MonthlyClosingScreen
-import com.ledgerleaf.feature.favorites.FavoritesScreen
 import com.ledgerleaf.feature.recurring.RecurringScreen
 import com.ledgerleaf.feature.recyclebin.RecycleBinScreen
 import com.ledgerleaf.feature.reports.ReportsScreen
@@ -60,47 +69,19 @@ fun LedgerLeafNavHost() {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 3.dp) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    primaryDestinations.take(2).forEach { destination ->
-                        LedgerLeafNavigationButton(
-                            destination,
-                            currentDestination?.hierarchy?.any { it.route == destination.route } == true
-                        ) {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+            LedgerBottomNavigation(
+                currentRouteSelected = { route ->
+                    currentDestination?.hierarchy?.any { it.route == route } == true
+                },
+                onNavigate = { destination ->
+                    navController.navigate(destination.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-
-                    FloatingActionButton(
-                        onClick = { navController.navigate(LedgerLeafDestination.AddExpense.route) },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics { contentDescription = "Add expense"; role = Role.Button }
-                    ) {
-                        Text("+", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    }
-
-                    primaryDestinations.drop(2).forEach { destination ->
-                        LedgerLeafNavigationButton(
-                            destination,
-                            currentDestination?.hierarchy?.any { it.route == destination.route } == true
-                        ) {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    }
-                }
-            }
+                },
+                onAdd = { navController.navigate(LedgerLeafDestination.AddExpense.route) }
+            )
         }
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -109,20 +90,14 @@ fun LedgerLeafNavHost() {
                     DashboardScreen(
                         onReportsClick = { navController.navigate(LedgerLeafDestination.Reports.route) },
                         onSettingsClick = { navController.navigate(LedgerLeafDestination.Settings.route) },
-                        onExpenseClick = { expenseId ->
-                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId))
-                        },
+                        onExpenseClick = { expenseId -> navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId)) },
                         onHistoryClick = { navController.navigate(LedgerLeafDestination.History.route) },
                         onFavoritesClick = { navController.navigate(LedgerLeafDestination.Favorites.route) },
                         onRecurringClick = { navController.navigate(LedgerLeafDestination.Recurring.route) }
                     )
                 }
                 composable(LedgerLeafDestination.History.route) {
-                    HistoryScreen(
-                        onExpenseClick = {
-                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it))
-                        }
-                    )
+                    HistoryScreen(onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) })
                 }
                 composable(LedgerLeafDestination.AddExpense.route) {
                     AddExpenseScreen(onSaved = { navController.popBackStack() })
@@ -135,23 +110,13 @@ fun LedgerLeafNavHost() {
                 }
                 composable(LedgerLeafDestination.ExpenseDetails.route) {
                     ExpenseDetailsScreen(
-                        onEdit = {
-                            navController.navigate(LedgerLeafDestination.EditExpense.createRoute(it))
-                        },
-                        onDeleted = {
-                            navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false)
-                        },
-                        onArchived = {
-                            navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false)
-                        }
+                        onEdit = { navController.navigate(LedgerLeafDestination.EditExpense.createRoute(it)) },
+                        onDeleted = { navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false) },
+                        onArchived = { navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false) }
                     )
                 }
                 composable(LedgerLeafDestination.EditExpense.route) {
-                    EditExpenseScreen(
-                        onSaved = {
-                            navController.popBackStack()
-                        }
-                    )
+                    EditExpenseScreen(onSaved = { navController.popBackStack() })
                 }
                 composable(LedgerLeafDestination.Reports.route) { ReportsScreen() }
                 composable(LedgerLeafDestination.Settings.route) {
@@ -167,11 +132,7 @@ fun LedgerLeafNavHost() {
                     )
                 }
                 composable(LedgerLeafDestination.Search.route) {
-                    SearchScreen(
-                        onExpenseClick = { expenseId ->
-                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId))
-                        }
-                    )
+                    SearchScreen(onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) })
                 }
                 composable(LedgerLeafDestination.Archive.route) { ArchiveScreen() }
                 composable(LedgerLeafDestination.RecycleBin.route) { RecycleBinScreen() }
@@ -183,9 +144,7 @@ fun LedgerLeafNavHost() {
                     )
                 }
                 composable(LedgerLeafDestination.MonthlyClosing.route) {
-                    MonthlyClosingScreen(
-                        onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) }
-                    )
+                    MonthlyClosingScreen(onExpenseClick = { navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(it)) })
                 }
                 composable(LedgerLeafDestination.BackupRestore.route) { BackupScreen() }
                 composable(LedgerLeafDestination.Recurring.route) {
@@ -200,22 +159,78 @@ fun LedgerLeafNavHost() {
 }
 
 @Composable
-private fun LedgerLeafNavigationButton(
+private fun LedgerBottomNavigation(
+    currentRouteSelected: (String) -> Boolean,
+    onNavigate: (LedgerLeafDestination) -> Unit,
+    onAdd: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 5.dp
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            LedgerNavItem(primaryDestinations[0], "⌂", currentRouteSelected(primaryDestinations[0].route)) { onNavigate(primaryDestinations[0]) }
+            LedgerNavItem(primaryDestinations[1], "◷", currentRouteSelected(primaryDestinations[1].route)) { onNavigate(primaryDestinations[1]) }
+            Surface(
+                modifier = Modifier
+                    .size(58.dp)
+                    .semantics { contentDescription = "Add expense"; role = Role.Button }
+                    .clickable(onClick = onAdd),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                shadowElevation = 9.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = .55f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("+", color = MaterialTheme.colorScheme.onPrimary, fontSize = 32.sp, fontWeight = FontWeight.Normal)
+                }
+            }
+            LedgerNavItem(primaryDestinations[2], "▥", currentRouteSelected(primaryDestinations[2].route)) { onNavigate(primaryDestinations[2]) }
+            LedgerNavItem(primaryDestinations[3], "•••", currentRouteSelected(primaryDestinations[3].route)) { onNavigate(primaryDestinations[3]) }
+        }
+    }
+}
+
+@Composable
+private fun LedgerNavItem(
     destination: LedgerLeafDestination,
+    glyph: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.semantics {
-            contentDescription = if (selected) "${destination.label}, selected" else destination.label
-            role = Role.Tab
-        }
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .semantics {
+                contentDescription = if (selected) "${destination.label}, selected" else destination.label
+                role = Role.Tab
+            },
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
+            glyph,
+            fontSize = if (destination == LedgerLeafDestination.Settings) 15.sp else 21.sp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        )
+        Text(
             destination.label,
+            style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
+        Box(
+            Modifier
+                .padding(top = 2.dp)
+                .width(16.dp)
+                .height(2.dp)
+                .background(if (selected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent, CircleShape)
         )
     }
 }

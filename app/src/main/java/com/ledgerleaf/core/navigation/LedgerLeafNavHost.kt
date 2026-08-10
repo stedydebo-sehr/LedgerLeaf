@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -90,6 +91,8 @@ fun LedgerLeafNavHost() {
                     DashboardScreen(
                         onReportsClick = { navController.navigate(LedgerLeafDestination.Reports.route) },
                         onSettingsClick = { navController.navigate(LedgerLeafDestination.Settings.route) },
+                        onSearchClick = { navController.navigate(LedgerLeafDestination.Search.route) },
+                        onBudgetsClick = { navController.navigate(LedgerLeafDestination.Budgets.route) },
                         onExpenseClick = { expenseId -> navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId)) },
                         onHistoryClick = { navController.navigate(LedgerLeafDestination.History.route) },
                         onFavoritesClick = { navController.navigate(LedgerLeafDestination.Favorites.route) },
@@ -165,19 +168,22 @@ private fun LedgerBottomNavigation(
     onAdd: () -> Unit
 ) {
     Surface(
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 5.dp
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            LedgerNavItem(primaryDestinations[0], "⌂", currentRouteSelected(primaryDestinations[0].route)) { onNavigate(primaryDestinations[0]) }
-            LedgerNavItem(primaryDestinations[1], "◷", currentRouteSelected(primaryDestinations[1].route)) { onNavigate(primaryDestinations[1]) }
+            LedgerNavItem(primaryDestinations[0], "⌂", "Home", currentRouteSelected(primaryDestinations[0].route)) { onNavigate(primaryDestinations[0]) }
+            LedgerNavItem(primaryDestinations[1], "▣", "History", currentRouteSelected(primaryDestinations[1].route)) { onNavigate(primaryDestinations[1]) }
             Surface(
                 modifier = Modifier
+                    .offset(y = (-16).dp)
                     .size(58.dp)
                     .semantics { contentDescription = "Add expense"; role = Role.Button }
                     .clickable(onClick = onAdd),
@@ -190,8 +196,8 @@ private fun LedgerBottomNavigation(
                     Text("+", color = MaterialTheme.colorScheme.onPrimary, fontSize = 32.sp, fontWeight = FontWeight.Normal)
                 }
             }
-            LedgerNavItem(primaryDestinations[2], "▥", currentRouteSelected(primaryDestinations[2].route)) { onNavigate(primaryDestinations[2]) }
-            LedgerNavItem(primaryDestinations[3], "•••", currentRouteSelected(primaryDestinations[3].route)) { onNavigate(primaryDestinations[3]) }
+            LedgerNavItem(primaryDestinations[2], "◫", "Reports", currentRouteSelected(primaryDestinations[2].route)) { onNavigate(primaryDestinations[2]) }
+            LedgerNavItem(primaryDestinations[3], "•••", "More", currentRouteSelected(primaryDestinations[3].route)) { onNavigate(primaryDestinations[3]) }
         }
     }
 }
@@ -200,6 +206,7 @@ private fun LedgerBottomNavigation(
 private fun LedgerNavItem(
     destination: LedgerLeafDestination,
     glyph: String,
+    label: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -209,18 +216,18 @@ private fun LedgerNavItem(
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .semantics {
-                contentDescription = if (selected) "${destination.label}, selected" else destination.label
+                contentDescription = if (selected) "$label, selected" else label
                 role = Role.Tab
             },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             glyph,
-            fontSize = if (destination == LedgerLeafDestination.Settings) 15.sp else 21.sp,
+            fontSize = if (label == "More") 15.sp else 21.sp,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
         )
         Text(
-            destination.label,
+            label,
             style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal

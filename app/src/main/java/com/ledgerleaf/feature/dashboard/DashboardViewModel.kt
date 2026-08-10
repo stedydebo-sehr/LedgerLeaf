@@ -2,6 +2,7 @@ package com.ledgerleaf.feature.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ledgerleaf.core.datastore.ThemeMode
 import com.ledgerleaf.domain.model.AppPreferences
 import com.ledgerleaf.domain.model.Expense
 import com.ledgerleaf.domain.repository.ExpenseRepository
@@ -12,27 +13,33 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    expenses: ExpenseRepository,
-    settings: SettingsRepository
+    private val expenses: ExpenseRepository,
+    private val settings: SettingsRepository
 ) : ViewModel() {
+    private val monthOffset = MutableStateFlow(0)
+
     val uiState: StateFlow<DashboardUiState> = combine(
         expenses.observeActiveExpenses(),
-        settings.preferences
-    ) { items, prefs ->
+        settings.preferences,
+        monthOffset
+    ) { items, prefs, offset ->
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val period = currentLedgerPeriod(today, prefs.monthStartDay)
+        val anchor = today.plusMonths(offset.toLong())
+        val period = currentLedgerPeriod(anchor, prefs.monthStartDay)
         val monthly = items.filter { expense ->
             val date = Instant.ofEpochMilli(expense.occurredAtEpochMillis).atZone(zone).toLocalDate()
             !date.isBefore(period.start) && !date.isAfter(period.end)
-        }
+        }.sortedByDescending { it.occurredAtEpochMillis }
         val total = monthly.sumOf { it.amountMinor }
         val budget = prefs.monthlyBudgetMinor
         val income = prefs.monthlyIncomeMinor
@@ -72,7 +79,7 @@ class DashboardViewModel @Inject constructor(
             remainingBudgetMinor = remaining,
             savingsMinor = savings,
             budgetProgress = if (budget != null && budget > 0L) total.toFloat() / budget.toFloat() else null,
-            recent = items.take(5),
+            recent = monthly.take(8),
             favoriteCount = favoriteCount,
             recurringDueCount = recurringDueCount,
             frequentLabel = frequentLabel,
@@ -84,6 +91,16 @@ class DashboardViewModel @Inject constructor(
         SharingStarted.WhileSubscribed(5_000),
         DashboardUiState()
     )
+
+    fun previousMonth() { monthOffset.value -= 1 }
+    fun nextMonth() { monthOffset.value += 1 }
+    fun returnToCurrentMonth() { monthOffset.value = 0 }
+
+    fun togglePaperMode(isCurrentlyDark: Boolean) {
+        viewModelScope.launch {
+            settings.setThemeMode(if (isCurrentlyDark) ThemeMode.LIGHT else ThemeMode.DARK)
+        }
+    }
 }
 
 private data class LedgerPeriod(val start: LocalDate, val end: LocalDate)
@@ -102,9 +119,9 @@ private fun previousLedgerPeriod(currentStart: LocalDate, startDay: Int): Ledger
 }
 
 private fun periodLabel(period: LedgerPeriod): String {
-    val month = DateTimeFormatter.ofPattern("MMM d")
-    val end = DateTimeFormatter.ofPattern("MMM d, yyyy")
-    return "${period.start.format(month)} – ${period.end.format(end)}"
+    val start = DateTimeFormatter.ofPattern("dd MMM")
+    val end = DateTimeFormatter.ofPattern("dd MMM")
+    return "${period.start.format(start)} – ${period.end.format(end)}"
 }
 
 private fun mostFrequentLabel(expenses: List<Expense>): String? = expenses

@@ -1,5 +1,6 @@
 package com.ledgerleaf.feature.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,20 +8,30 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,12 +42,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +65,6 @@ import com.ledgerleaf.R
 import com.ledgerleaf.core.ui.theme.DarkMarginLine
 import com.ledgerleaf.core.ui.theme.DarkSpiralMetal
 import com.ledgerleaf.core.ui.theme.LedgerAmber
-import com.ledgerleaf.core.ui.theme.LedgerDeepGreen
 import com.ledgerleaf.core.ui.theme.LedgerMarginLine
 import com.ledgerleaf.core.ui.theme.LedgerRed
 import com.ledgerleaf.core.ui.theme.LedgerSpiralMetal
@@ -65,6 +79,8 @@ import java.time.format.DateTimeFormatter
 fun DashboardScreen(
     onReportsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onBudgetsClick: () -> Unit,
     onExpenseClick: (String) -> Unit,
     onHistoryClick: () -> Unit,
     onFavoritesClick: () -> Unit,
@@ -73,84 +89,149 @@ fun DashboardScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = MaterialTheme.colorScheme.background.red < 0.15f
-    val ruleColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.20f else 0.34f)
-    val marginColor = if (isDark) DarkMarginLine else LedgerMarginLine
 
-    Box(
+    BoxWithConstraints(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(if (isDark) Color(0xFF050605) else Color(0xFF8A6B45))
     ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .drawBehind {
-                    val step = 28.dp.toPx()
-                    var y = step
-                    while (y < size.height) {
-                        drawLine(ruleColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
-                        y += step
-                    }
-                    val x = 42.dp.toPx()
-                    drawLine(marginColor, Offset(x, 0f), Offset(x, size.height), 1.dp.toPx())
-                }
-        )
+        val showSideTabs = maxWidth > 420.dp
+        val outerHorizontal = if (showSideTabs) 16.dp else 8.dp
+        val frameEnd = if (showSideTabs) 30.dp else 8.dp
 
-        SpiralBinding(isDark)
-
-        LazyColumn(
+        LedgerPaperFrame(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 50.dp, end = 22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(start = outerHorizontal, end = frameEnd, top = 48.dp, bottom = 8.dp),
+            isDark = isDark
         ) {
-            item { Spacer(Modifier.height(18.dp)) }
-            item { LedgerHeader(onReportsClick, onSettingsClick) }
-            item { MonthHeader(state.periodTitle, state.periodLabel) }
-            item { StatsCard(state) }
-            item { BudgetProgressCard(state) }
-            if (state.showMonthlyClosingBanner) {
-                item { MonthlyClosingBanner(onHistoryClick) }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 54.dp, end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                item { Spacer(Modifier.height(16.dp)) }
+                item {
+                    LedgerHeader(
+                        isDark = isDark,
+                        onCurrencyClick = onSettingsClick,
+                        onSettingsClick = onSettingsClick
+                    )
+                }
+                item {
+                    MonthHeader(
+                        title = state.periodTitle,
+                        range = state.periodLabel,
+                        onPrevious = viewModel::previousMonth,
+                        onNext = viewModel::nextMonth
+                    )
+                }
+                item { StatsCard(state) }
+                item { BudgetProgressCard(state) }
+                item {
+                    RecentEntriesCard(
+                        expenses = state.recent,
+                        currency = state.preferences.currencyCode,
+                        onViewAll = onHistoryClick,
+                        onExpenseClick = onExpenseClick
+                    )
+                }
+                item { MandatoryNotesFooter() }
+                item { Spacer(Modifier.height(22.dp)) }
             }
-            item { RecentEntriesCard(state.recent, state.preferences.currencyCode, onHistoryClick, onExpenseClick) }
-            item { MandatoryNotesFooter() }
-            item { Spacer(Modifier.height(18.dp)) }
         }
-    }
-}
 
-@Composable
-private fun SpiralBinding(isDark: Boolean) {
-    val metal = if (isDark) DarkSpiralMetal else LedgerSpiralMetal
-    val hole = MaterialTheme.colorScheme.background
-    Column(
-        modifier = Modifier.padding(start = 13.dp, top = 30.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        repeat(12) {
-            Box(
-                Modifier
-                    .size(18.dp)
-                    .background(hole, CircleShape)
-                    .border(3.dp, metal, CircleShape)
+        ThemeTogglePill(
+            isDark = isDark,
+            onClick = { viewModel.togglePaperMode(isDark) },
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 14.dp)
+        )
+
+        if (showSideTabs) {
+            SideTabs(
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 104.dp, end = 2.dp),
+                onLedger = viewModel::returnToCurrentMonth,
+                onHistory = onHistoryClick,
+                onSearch = onSearchClick,
+                onReports = onReportsClick,
+                onBudgets = onBudgetsClick,
+                onSettings = onSettingsClick
             )
         }
     }
 }
 
 @Composable
-private fun LedgerHeader(onReportsClick: () -> Unit, onSettingsClick: () -> Unit) {
+private fun LedgerPaperFrame(modifier: Modifier, isDark: Boolean, content: @Composable () -> Unit) {
+    val ruleColor = if (isDark) Color(0x0DC8C8AA) else Color(0x125A4628)
+    val marginColor = if (isDark) DarkMarginLine else LedgerMarginLine
+    val metal = if (isDark) DarkSpiralMetal else LedgerSpiralMetal
+    val hole = if (isDark) Color(0xFF050605) else Color(0xFF8A6B45)
+
+    Box(
+        modifier
+            .shadow(18.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.verticalGradient(
+                    if (isDark) listOf(Color(0xFF12140F), Color(0xFF14170F))
+                    else listOf(Color(0xFFF4EFE1), Color(0xFFF7F2E6))
+                )
+            )
+            .drawBehind {
+                val step = 28.dp.toPx()
+                var y = step
+                while (y < size.height) {
+                    drawLine(ruleColor, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+                    y += step
+                }
+                drawLine(marginColor, Offset(52.dp.toPx(), 0f), Offset(52.dp.toPx(), size.height), 1.dp.toPx())
+            }
+    ) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(34.dp)
+                .background(Color.Black.copy(alpha = if (isDark) .14f else .07f))
+        )
+        Column(
+            modifier = Modifier.padding(start = 8.dp, top = 26.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            repeat(13) {
+                Box(
+                    Modifier
+                        .size(17.dp)
+                        .background(hole, CircleShape)
+                        .border(3.dp, metal, CircleShape)
+                )
+            }
+        }
+        content()
+    }
+}
+
+@Composable
+private fun LedgerHeader(
+    isDark: Boolean,
+    onCurrencyClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        LeafMark()
-        Column(Modifier.weight(1f).padding(start = 8.dp)) {
+        Image(
+            painter = painterResource(if (isDark) R.drawable.ledgerleaf_logo_dark else R.drawable.ledgerleaf_logo_light),
+            contentDescription = "LedgerLeaf logo",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.offset(x = (-2).dp).size(32.dp).clip(RoundedCornerShape(8.dp))
+        )
+        Column(Modifier.weight(1f).padding(start = 9.dp)) {
             Text(
                 "LedgerLeaf",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                letterSpacing = .3.sp
             )
             Text(
                 "My Personal Ledger",
@@ -159,54 +240,95 @@ private fun LedgerHeader(onReportsClick: () -> Unit, onSettingsClick: () -> Unit
                 fontStyle = FontStyle.Italic
             )
         }
-        LedgerIconButton("▤", "Reports", onReportsClick)
-        Spacer(Modifier.width(7.dp))
-        LedgerIconButton("⚙", "Settings", onSettingsClick)
+        LedgerGlyphButton("▤", "Currency", onCurrencyClick)
+        Spacer(Modifier.width(8.dp))
+        LedgerIconButton(Icons.Default.Settings, "Settings", onSettingsClick)
     }
 }
 
 @Composable
-private fun LeafMark() {
-    val isDark = MaterialTheme.colorScheme.background.red < 0.15f
-    Image(
-        painter = painterResource(
-            if (isDark) R.drawable.ledgerleaf_logo_dark else R.drawable.ledgerleaf_logo_light
-        ),
-        contentDescription = "LedgerLeaf logo",
-        contentScale = ContentScale.Fit,
-        modifier = Modifier
-            .size(36.dp)
-            .clip(RoundedCornerShape(9.dp))
-    )
-}
-
-@Composable
-private fun LedgerIconButton(glyph: String, description: String, onClick: () -> Unit) {
+private fun ThemeTogglePill(isDark: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier
-            .size(38.dp)
-            .semantics { contentDescription = description }
-            .clickable(onClick = onClick),
-        color = Color.Transparent,
-        shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        modifier = modifier.clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surface,
+        shape = CircleShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 4.dp
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(glyph, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Text(if (isDark) "☼" else "☾", color = MaterialTheme.colorScheme.primary, fontSize = 15.sp)
+            Text(
+                if (isDark) "Paper mode" else "Night mode",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontStyle = FontStyle.Italic
+            )
         }
     }
 }
 
 @Composable
-private fun MonthHeader(title: String, range: String) {
+private fun LedgerGlyphButton(glyph: String, description: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .size(38.dp)
+            .semantics { contentDescription = description; role = Role.Button }
+            .clickable(onClick = onClick),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(glyph, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 19.sp)
+        }
+    }
+}
+
+@Composable
+private fun LedgerIconButton(image: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .size(38.dp)
+            .semantics { contentDescription = description; role = Role.Button }
+            .clickable(onClick = onClick),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(image, description, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun MonthHeader(title: String, range: String, onPrevious: () -> Unit, onNext: () -> Unit) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 2.sp
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Icon(
+                Icons.Default.KeyboardArrowLeft,
+                "Previous month",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(25.dp).clickable(onClick = onPrevious).padding(2.dp)
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp
+            )
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                "Next month",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(25.dp).clickable(onClick = onNext).padding(2.dp)
+            )
+        }
         Text(
             range,
             style = MaterialTheme.typography.bodySmall,
@@ -219,15 +341,13 @@ private fun MonthHeader(title: String, range: String) {
 @Composable
 private fun StatsCard(state: DashboardUiState) {
     val currency = state.preferences.currencyCode
-    val budget = state.preferences.monthlyBudgetMinor
-    val remaining = state.remainingBudgetMinor
     LedgerCard {
-        Row(Modifier.fillMaxWidth().padding(vertical = 15.dp)) {
-            StatCell("BUDGET", "▣", budget?.let { money(it, currency) } ?: "—", Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 4.dp)) {
+            StatCell("BUDGET", "▣", state.preferences.monthlyBudgetMinor?.let { money(it, currency) } ?: "—", Modifier.weight(1f))
             DottedDivider()
-            StatCell("SPENT", "⌑", money(state.monthTotalMinor, currency), Modifier.weight(1f), LedgerRed)
+            StatCell("SPENT", "⌑", money(state.monthTotalMinor, currency), Modifier.weight(1f), MaterialTheme.colorScheme.error)
             DottedDivider()
-            StatCell("REMAINING", "▤", remaining?.let { signedMoney(it, currency) } ?: "—", Modifier.weight(1f))
+            StatCell("REMAINING", "▤", state.remainingBudgetMinor?.let { signedMoney(it, currency) } ?: "—", Modifier.weight(1f))
             DottedDivider()
             StatCell("ENTRIES", "▥", state.transactionCount.toString(), Modifier.weight(1f))
         }
@@ -236,8 +356,8 @@ private fun StatsCard(state: DashboardUiState) {
 
 @Composable
 private fun DottedDivider() {
-    val color = MaterialTheme.colorScheme.outline.copy(alpha = .42f)
-    Canvas(Modifier.width(1.dp).height(68.dp)) {
+    val color = MaterialTheme.colorScheme.outline.copy(alpha = .45f)
+    Canvas(Modifier.width(1.dp).height(70.dp)) {
         var y = 0f
         while (y < size.height) {
             drawLine(color, Offset(0f, y), Offset(0f, (y + 4.dp.toPx()).coerceAtMost(size.height)), 1.dp.toPx())
@@ -248,43 +368,56 @@ private fun DottedDivider() {
 
 @Composable
 private fun StatCell(label: String, icon: String, value: String, modifier: Modifier, valueColor: Color? = null) {
-    val resolvedValueColor = valueColor ?: MaterialTheme.colorScheme.onSurface
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontWeight = FontWeight.Bold)
-        Text(icon, fontSize = 18.sp, color = if (resolvedValueColor == LedgerRed) LedgerRed else MaterialTheme.colorScheme.secondary)
-        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = resolvedValueColor, maxLines = 1)
+    Column(modifier.padding(horizontal = 3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 10.5.sp, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.outline, fontWeight = FontWeight.SemiBold)
+        Text(icon, fontSize = 19.sp, color = valueColor ?: MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 7.dp, bottom = 5.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.titleSmall,
+            fontSize = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = valueColor ?: MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
 @Composable
 private fun BudgetProgressCard(state: DashboardUiState) {
+    val progress = state.budgetProgress
     val budget = state.preferences.monthlyBudgetMinor
     LedgerCard {
-        Column(Modifier.padding(15.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Text("MONTH PROGRESS", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline, letterSpacing = 1.sp)
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Text(
-                    if (budget != null && budget > 0) "${((state.budgetProgress ?: 0f) * 100).coerceAtLeast(0f).toInt()}%" else "—",
+                    "MONTH PROGRESS",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 11.sp,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    if (progress == null) "—" else "${String.format("%.1f", progress * 100f)}%",
                     style = MaterialTheme.typography.titleSmall,
+                    fontStyle = FontStyle.Italic,
                     color = MaterialTheme.colorScheme.primary,
-                    fontStyle = FontStyle.Italic
+                    fontSize = 17.sp
                 )
             }
-            Spacer(Modifier.height(9.dp))
-            val p = (state.budgetProgress ?: 0f).coerceIn(0f, 1f)
+            Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
-                progress = { p },
+                progress = { (progress ?: 0f).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth().height(9.dp).clip(CircleShape),
-                color = when {
-                    p < .65f -> MaterialTheme.colorScheme.primary
-                    p < .90f -> LedgerAmber
-                    else -> LedgerRed
-                },
-                trackColor = MaterialTheme.colorScheme.outlineVariant
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f),
+                strokeCap = StrokeCap.Round
             )
-            Spacer(Modifier.height(7.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
-                if (budget != null) "${money(state.monthTotalMinor, state.preferences.currencyCode)} of ${money(budget, state.preferences.currencyCode)}" else "Set a monthly budget in Settings",
+                if (budget == null) "Set a monthly budget in Settings"
+                else "${money(state.monthTotalMinor, state.preferences.currencyCode)} of ${money(budget, state.preferences.currencyCode)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontStyle = FontStyle.Italic
@@ -297,37 +430,43 @@ private fun BudgetProgressCard(state: DashboardUiState) {
 private fun RecentEntriesCard(
     expenses: List<Expense>,
     currency: String,
-    onHistoryClick: () -> Unit,
+    onViewAll: () -> Unit,
     onExpenseClick: (String) -> Unit
 ) {
     LedgerCard {
-        Column {
+        Column(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 6.dp)) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 0.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("RECENT ENTRIES", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text(
-                    "View all ›",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable(onClick = onHistoryClick).padding(4.dp)
+                    "RECENT ENTRIES",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 12.5.sp,
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            if (expenses.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 42.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("▱", fontSize = 32.sp, color = MaterialTheme.colorScheme.secondary)
-                        Spacer(Modifier.height(8.dp))
-                        Text("Your ledger is empty.", style = MaterialTheme.typography.bodyLarge, fontStyle = FontStyle.Italic)
-                    }
+                Row(Modifier.clickable(onClick = onViewAll), verticalAlignment = Alignment.CenterVertically) {
+                    Text("View all", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontStyle = FontStyle.Italic)
+                    Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
                 }
+            }
+            LedgerHairline(Modifier.padding(top = 10.dp))
+            EntryColumnLabels()
+            if (expenses.isEmpty()) {
+                Text(
+                    "No entries in this ledger period.",
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = FontStyle.Italic
+                )
             } else {
-                EntryColumnLabels()
                 expenses.forEach { expense ->
-                    ExpenseTableRow(expense, currency, onExpenseClick)
+                    LedgerHairline()
+                    EntryRow(expense, currency, onExpenseClick)
                 }
             }
         }
@@ -336,48 +475,88 @@ private fun RecentEntriesCard(
 
 @Composable
 private fun EntryColumnLabels() {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
-        Text("Date", Modifier.width(42.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-        Text("Category", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Date", Modifier.width(38.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text("Category", Modifier.weight(1.15f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
         Text("Note", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-        Text("Amount", Modifier.width(76.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text("★", Modifier.width(20.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text("Amount", Modifier.width(68.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Spacer(Modifier.width(14.dp))
     }
 }
 
 @Composable
-private fun ExpenseTableRow(expense: Expense, currency: String, onExpenseClick: (String) -> Unit) {
-    val dt = Instant.ofEpochMilli(expense.occurredAtEpochMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-    val amountMajor = expense.amountMinor / 100.0
+private fun EntryRow(expense: Expense, currency: String, onExpenseClick: (String) -> Unit) {
+    val dt = Instant.ofEpochMilli(expense.occurredAtEpochMillis).atZone(ZoneId.systemDefault())
     val amountColor = when {
-        amountMajor <= 700 -> LedgerDeepGreen
-        amountMajor <= 1000 -> LedgerAmber
-        else -> LedgerRed
+        expense.amountMinor <= 70_000L -> Color(0xFF3F7A2E).takeIf { MaterialTheme.colorScheme.background.red > .15f } ?: Color(0xFF8FB35C)
+        expense.amountMinor <= 100_000L -> LedgerAmber.takeIf { MaterialTheme.colorScheme.background.red > .15f } ?: Color(0xFFD99A4E)
+        else -> MaterialTheme.colorScheme.error
     }
-    Column(Modifier.clickable { onExpenseClick(expense.id) }) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.width(42.dp)) {
-                Text(dt.dayOfMonth.toString().padStart(2, '0'), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(dt.format(DateTimeFormatter.ofPattern("MMM")), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(expense.category.name, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(expense.notes, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(money(expense.amountMinor, currency), Modifier.width(76.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = amountColor)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onExpenseClick(expense.id) }
+            .padding(horizontal = 8.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.width(38.dp)) {
+            Text(dt.dayOfMonth.toString().padStart(2, '0'), fontSize = 14.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(dt.format(DateTimeFormatter.ofPattern("MMM")), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Row(Modifier.weight(1.15f), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                modifier = Modifier.size(24.dp),
+                shape = CircleShape,
+                color = Color.Transparent,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(categoryGlyph(expense.category.name), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Text(
+                expense.category.name,
+                modifier = Modifier.padding(start = 7.dp),
+                fontSize = 12.5.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text(
+            expense.notes,
+            Modifier.weight(1f),
+            fontSize = 12.sp,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Box(Modifier.width(20.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Default.Star,
+                null,
+                tint = if (expense.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = .65f),
+                modifier = Modifier.size(15.dp)
+            )
+        }
+        Text(
+            money(expense.amountMinor, currency),
+            Modifier.width(68.dp),
+            textAlign = TextAlign.End,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = amountColor,
+            maxLines = 1
+        )
+        Icon(Icons.Default.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.width(14.dp).size(14.dp))
     }
 }
 
 @Composable
-private fun MonthlyClosingBanner(onClick: () -> Unit) {
-    LedgerCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Column(Modifier.padding(14.dp)) {
-            Text("MONTHLY CLOSING", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            Text("Last month's ledger is ready for review.", style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
-        }
-    }
+private fun LedgerHairline(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f)))
 }
 
 @Composable
@@ -386,25 +565,87 @@ private fun MandatoryNotesFooter() {
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
         shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .45f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .45f))
     ) {
-        Row(Modifier.padding(horizontal = 13.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("❧", color = MaterialTheme.colorScheme.primary, fontSize = 18.sp)
-            Spacer(Modifier.width(8.dp))
-            Text("Notes are mandatory for every entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontStyle = FontStyle.Italic)
+            Spacer(Modifier.width(9.dp))
+            Text(
+                "Notes are mandatory for every entry.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontStyle = FontStyle.Italic
+            )
         }
     }
 }
 
 @Composable
-private fun LedgerCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun LedgerCard(content: @Composable () -> Unit) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface.copy(alpha = .96f),
         shape = RoundedCornerShape(14.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         content = content
     )
+}
+
+@Composable
+private fun SideTabs(
+    modifier: Modifier,
+    onLedger: () -> Unit,
+    onHistory: () -> Unit,
+    onSearch: () -> Unit,
+    onReports: () -> Unit,
+    onBudgets: () -> Unit,
+    onSettings: () -> Unit
+) {
+    val tabs = listOf(
+        Triple("Ledger", "⌂", onLedger),
+        Triple("History", "◷", onHistory),
+        Triple("Search", "⌕", onSearch),
+        Triple("Reports", "▥", onReports),
+        Triple("Budgets", "▣", onBudgets),
+        Triple("Settings", "•••", onSettings)
+    )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        tabs.forEachIndexed { index, tab ->
+            Surface(
+                modifier = Modifier.width(52.dp).clickable(onClick = tab.third),
+                color = if (index == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(14.dp),
+                shadowElevation = 2.dp
+            ) {
+                Column(
+                    Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text(tab.second, fontSize = 15.sp, color = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(
+                        tab.first.uppercase(),
+                        fontSize = 8.5.sp,
+                        letterSpacing = .5.sp,
+                        color = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun categoryGlyph(name: String): String = when {
+    name.contains("grocer", true) -> "♧"
+    name.contains("util", true) -> "ϟ"
+    name.contains("pet", true) -> "♙"
+    name.contains("travel", true) -> "▰"
+    name.contains("food", true) || name.contains("dining", true) -> "☕"
+    name.contains("entertain", true) -> "▶"
+    name.contains("medical", true) -> "+"
+    name.contains("maint", true) -> "⌁"
+    else -> "•"
 }
 
 private fun money(amountMinor: Long, currency: String): String =

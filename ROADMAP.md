@@ -1,50 +1,17 @@
 # LedgerLeaf Roadmap
 
-## Sprint 1 — Foundation
+Sprints 1–16: implementation complete and build-verified before this release batch.
 
-### LL-001 — Project Setup ✅
-### LL-002 — Core Foundation & Navigation ✅
-### LL-003 — Preferences & App Settings Foundation ✅
-- DataStore Preferences
-- System / Light / Dark theme persistence
-- Currency preference
-- Optional monthly budget preference
-- Monthly period start preference
-- Settings repository + Hilt + Flow ViewModel
+## Sprint 17 — Testing & Hardening
+LL-068 Unit Tests • LL-069 DAO Tests • LL-070 Repository Tests • LL-071 UI Tests • LL-072 Migration Tests • LL-073 Backup/Restore Tests • LL-074 PDF Verification • LL-075 Destructive-Action Tests
 
-## Sprint 2 — Expense Core
+## Sprint 18 — Beta
+LL-076 Feature Freeze • LL-077 Internal Beta Build • LL-078 Real-Life Usage Test • LL-079 Bug Fix Batches • LL-080 Regression Testing
 
-### LL-004 — Expense & Category Data Foundation ✅
-- UUID-backed Room entities
-- Normalized categories/subcategories/expense relations
-- Non-destructive migration 1 → 2
-- Integer minor-unit money storage
-- Soft-delete/archive fields reserved in expense schema
+## Sprint 19 — Release Candidate
+LL-081 Database Finalization • LL-082 UI Polish • LL-083 Branding • LL-084 Documentation • LL-085 Release Build • LL-086 Final Smoke Test
 
-### LL-005 — Repositories & System Defaults ✅
-- Category and Expense repositories
-- Immutable system category seed definitions
-- Locked default subcategories
-- Custom category creation foundation
-- Hilt repository bindings
+## Sprint 20 — LedgerLeaf v1.0
+LL-087 Production Release
 
-### LL-006 — Add Expense Vertical Slice ✅
-- Amount, category, subcategory details
-- Mandatory detailed notes
-- Backdated date/time entry
-- Favorite and recurring toggles
-- Weekly/monthly recurring template choice
-- Save validation through use case
-- Currency from Settings
-
-### LL-007 — Dashboard & History Integration ✅
-- Live monthly total
-- Optional budget display
-- Recent expense entries
-- History backed by Room/Flow
-- Day / Week / Month / Year grouping
-
-**Sprint 2 status: GENERATED — awaiting Codespace `gradle clean && gradle assembleDebug` verification.**
-
-## Next — Sprint 3
-Planned only after Sprint 2 build verification and commit. Existing placeholder foundations for Reports, Search, Archive, Recycle Bin, and Budgets remain preserved.
+**Generated target:** `1.0.0`. Automated and device release gates remain to be run in the LedgerLeaf Codespace/device environment before distribution.

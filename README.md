@@ -1,25 +1,53 @@
-# LedgerLeaf
-Offline-first Android personal finance journal.
+# LedgerLeaf 🍁
 
-## Current status
-Sprint 1 generated complete through LL-003. Sprint 2 Expense Core generated complete through LL-007 and awaits Codespace build verification.
+LedgerLeaf is an offline-first Android personal finance journal built with Kotlin, Jetpack Compose, Material 3, Room, Hilt, MVVM and Clean Architecture.
 
-## Locked build baseline
-- Android 12+ (`minSdk = 31`)
-- compile/target SDK 36
-- JDK 17
-- Gradle 8.13
-- AGP 8.13.2
-- Kotlin 2.3.21
-- KSP 2.3.11
-- Hilt 2.58
-- Room 2.8.4
-- DataStore Preferences 1.2.1
-- Compose + Material 3
+## Version
 
-Build from the repository root:
+**1.0.0** — production release candidate implementation after Sprints 1–20.
+
+## Product guarantees
+
+- Android 12 / API 31+
+- Fully offline; no login or cloud account
+- No ads, analytics or user tracking
+- Room is the financial database
+- UUID-backed records
+- Integer minor-unit money storage
+- Mandatory notes for final expenses
+- Six-month Recycle Bin
+- 18-month Archive lifecycle
+- On-demand reports and offline PDF export
+- User-controlled offline backup/restore
+- Light/dark ledger themes
+
+## Build
+
 ```bash
-gradle clean
 gradle assembleDebug
 ```
-Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
+
+Run local unit tests:
+
+```bash
+gradle testDebugUnitTest
+```
+
+Run connected Android tests when an emulator/device is available:
+
+```bash
+gradle connectedDebugAndroidTest
+```
+
+Build the optimized release artifacts:
+
+```bash
+gradle assembleRelease
+gradle bundleRelease
+```
+
+Release signing is intentionally secret-free in source control. Set `LEDGERLEAF_KEYSTORE`, `LEDGERLEAF_STORE_PASSWORD`, `LEDGERLEAF_KEY_ALIAS` and `LEDGERLEAF_KEY_PASSWORD` in the build environment to produce signed release artifacts.
+
+## Release verification
+
+See `RELEASE_CHECKLIST.md` before distributing v1.0.0.

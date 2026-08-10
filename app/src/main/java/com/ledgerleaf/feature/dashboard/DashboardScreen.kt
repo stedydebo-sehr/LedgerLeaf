@@ -97,7 +97,7 @@ fun DashboardScreen(
             .background(if (isDark) Color(0xFF050605) else Color(0xFF8A6B45))
     ) {
         val showSideTabs = maxWidth > 420.dp
-        val frameEnd = if (showSideTabs) 52.dp else 8.dp
+        val frameEnd = if (showSideTabs) 56.dp else 8.dp
 
         LedgerPaperFrame(
             modifier = Modifier

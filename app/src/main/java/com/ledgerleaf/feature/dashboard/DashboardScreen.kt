@@ -28,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -265,8 +267,8 @@ private fun DashboardHeader(onReportsClick: () -> Unit, onSettingsClick: () -> U
             Text("LedgerLeaf", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("My Personal Ledger", style = MaterialTheme.typography.bodySmall)
         }
-        IconButton(onClick = onReportsClick) { Text("▧", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
-        IconButton(onClick = onSettingsClick) { Text("⚙", fontSize = 21.sp) }
+        IconButton(onClick = onReportsClick, modifier = Modifier.semantics { contentDescription = "Reports" }) { Text("▧", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
+        IconButton(onClick = onSettingsClick, modifier = Modifier.semantics { contentDescription = "Settings" }) { Text("⚙", fontSize = 21.sp) }
     }
 }
 

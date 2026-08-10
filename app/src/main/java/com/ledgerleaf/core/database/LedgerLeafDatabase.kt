@@ -2,6 +2,7 @@ package com.ledgerleaf.core.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.ledgerleaf.data.local.dao.BackupDao
 import com.ledgerleaf.data.local.dao.CategoryDao
 import com.ledgerleaf.data.local.dao.ExpenseDao
 import com.ledgerleaf.data.local.dao.PaymentMethodDao
@@ -20,15 +21,17 @@ import com.ledgerleaf.data.local.entity.SubcategoryEntity
         ExpenseEntity::class,
         ExpenseSubcategoryCrossRef::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class LedgerLeafDatabase : RoomDatabase() {
+    abstract fun backupDao(): BackupDao
     abstract fun categoryDao(): CategoryDao
     abstract fun paymentMethodDao(): PaymentMethodDao
     abstract fun expenseDao(): ExpenseDao
 
     companion object {
         const val DATABASE_NAME = "ledgerleaf.db"
+        const val VERSION = 4
     }
 }

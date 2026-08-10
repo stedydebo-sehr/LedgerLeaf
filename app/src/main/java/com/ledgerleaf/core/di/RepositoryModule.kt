@@ -1,8 +1,10 @@
 package com.ledgerleaf.core.di
 
+import com.ledgerleaf.data.repository.RoomBackupRepository
 import com.ledgerleaf.data.repository.RoomCategoryRepository
 import com.ledgerleaf.data.repository.RoomExpenseRepository
 import com.ledgerleaf.data.repository.RoomPaymentMethodRepository
+import com.ledgerleaf.domain.backup.BackupRepository
 import com.ledgerleaf.domain.repository.CategoryRepository
 import com.ledgerleaf.domain.repository.ExpenseRepository
 import com.ledgerleaf.domain.repository.PaymentMethodRepository
@@ -15,6 +17,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: RoomBackupRepository): BackupRepository
+
     @Binds
     @Singleton
     abstract fun bindCategoryRepository(impl: RoomCategoryRepository): CategoryRepository

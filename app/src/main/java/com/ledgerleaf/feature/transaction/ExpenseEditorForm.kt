@@ -3,6 +3,8 @@ package com.ledgerleaf.feature.transaction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -84,7 +86,7 @@ fun ExpenseEditorForm(
 
         val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
 
-        Column(modifier.verticalScroll(rememberScrollState())) {
+        Column(modifier.imePadding().navigationBarsPadding().verticalScroll(rememberScrollState())) {
             OutlinedTextField(
                 value = amount,
                 onValueChange = { input -> amount = input.filter { it.isDigit() || it == '.' } },

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledgerleaf.domain.model.Expense
 import com.ledgerleaf.domain.repository.ExpenseRepository
+import com.ledgerleaf.domain.usecase.ArchiveExpenseUseCase
 import com.ledgerleaf.domain.usecase.DeleteExpenseUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 class ExpenseDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     repository: ExpenseRepository,
-    private val deleteExpense: DeleteExpenseUseCase
+    private val deleteExpense: DeleteExpenseUseCase,
+    private val archiveExpense: ArchiveExpenseUseCase
 ) : ViewModel() {
     val expenseId: String = checkNotNull(savedStateHandle["expenseId"])
 
@@ -24,6 +26,7 @@ class ExpenseDetailsViewModel @Inject constructor(
     val uiState: StateFlow<ExpenseDetailsUiState> = _uiState
 
     private var deletionRequested = false
+    private var archiveRequested = false
 
     init {
         viewModelScope.launch {
@@ -31,10 +34,22 @@ class ExpenseDetailsViewModel @Inject constructor(
                 val expense = expenses.firstOrNull { it.id == expenseId }
                 _uiState.value = when {
                     deletionRequested && expense == null -> ExpenseDetailsUiState.Deleted
+                    archiveRequested && expense == null -> ExpenseDetailsUiState.Archived
                     expense != null -> ExpenseDetailsUiState.Ready(expense)
                     else -> ExpenseDetailsUiState.NotFound
                 }
             }
+        }
+    }
+
+    fun archive() {
+        viewModelScope.launch {
+            archiveRequested = true
+            archiveExpense(expenseId)
+                .onFailure {
+                    archiveRequested = false
+                    _uiState.value = ExpenseDetailsUiState.Error(it.message ?: "Unable to archive expense.")
+                }
         }
     }
 
@@ -55,5 +70,6 @@ sealed interface ExpenseDetailsUiState {
     data class Ready(val expense: Expense) : ExpenseDetailsUiState
     data object NotFound : ExpenseDetailsUiState
     data object Deleted : ExpenseDetailsUiState
+    data object Archived : ExpenseDetailsUiState
     data class Error(val message: String) : ExpenseDetailsUiState
 }

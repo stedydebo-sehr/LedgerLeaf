@@ -39,13 +39,16 @@ import java.time.format.DateTimeFormatter
 fun ExpenseDetailsScreen(
     onEdit: (String) -> Unit,
     onDeleted: () -> Unit,
+    onArchived: () -> Unit,
     viewModel: ExpenseDetailsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showArchiveDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state) {
         if (state is ExpenseDetailsUiState.Deleted) onDeleted()
+        if (state is ExpenseDetailsUiState.Archived) onArchived()
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -60,6 +63,7 @@ fun ExpenseDetailsScreen(
                 Text("Expense not found.", modifier = Modifier.padding(24.dp))
             }
             ExpenseDetailsUiState.Deleted -> Unit
+            ExpenseDetailsUiState.Archived -> Unit
             is ExpenseDetailsUiState.Error -> {
                 Text(current.message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(24.dp))
             }
@@ -97,9 +101,26 @@ fun ExpenseDetailsScreen(
                     ) { Text("Edit Expense") }
 
                     OutlinedButton(
+                        onClick = { showArchiveDialog = true },
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                    ) { Text("Archive Expense") }
+
+                    OutlinedButton(
                         onClick = { showDeleteDialog = true },
                         modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
                     ) { Text("Delete Expense") }
+                }
+
+                if (showArchiveDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showArchiveDialog = false },
+                        title = { Text("Archive expense?") },
+                        text = { Text("This expense will leave active ledger views and remain available in Archive for 18 months by default.") },
+                        confirmButton = {
+                            Button(onClick = { showArchiveDialog = false; viewModel.archive() }) { Text("Archive") }
+                        },
+                        dismissButton = { androidx.compose.material3.TextButton(onClick = { showArchiveDialog = false }) { Text("Cancel") } }
+                    )
                 }
 
                 DoubleConfirmationDialog(

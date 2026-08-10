@@ -7,5 +7,7 @@ data class AppPreferences(
     val currencyCode: String = "INR",
     val monthlyBudgetMinor: Long? = null,
     val monthlyIncomeMinor: Long? = null,
-    val monthStartDay: Int = 1
+    val monthStartDay: Int = 1,
+    val pdfIncludeTransactions: Boolean = true,
+    val pdfIncludeNotes: Boolean = true
 )

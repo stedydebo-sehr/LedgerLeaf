@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -83,7 +84,7 @@ fun MonthlyClosingScreen(
         if (state.expenses.isEmpty()) {
             Text("No active expenses in this closing period.", modifier = Modifier.padding(24.dp))
         } else {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize().imePadding()) {
                 items(state.expenses, key = { it.id }) { expense -> ClosingExpenseRow(expense, onExpenseClick) }
             }
         }

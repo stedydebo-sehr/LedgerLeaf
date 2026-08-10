@@ -11,4 +11,7 @@ interface SettingsRepository {
     suspend fun setMonthlyBudgetMinor(amountMinor: Long?)
     suspend fun setMonthlyIncomeMinor(amountMinor: Long?)
     suspend fun setMonthStartDay(day: Int)
+    suspend fun setPdfIncludeTransactions(include: Boolean)
+    suspend fun setPdfIncludeNotes(include: Boolean)
+    suspend fun restorePreferences(preferences: AppPreferences)
 }

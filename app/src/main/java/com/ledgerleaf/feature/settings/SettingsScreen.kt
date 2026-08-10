@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,9 +14,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,19 +43,31 @@ fun SettingsScreen(
     onFavoritesClick: () -> Unit,
     onRecurringClick: () -> Unit,
     onMonthlyClosingClick: () -> Unit,
+    onBackupRestoreClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var currency by remember(preferences.currencyCode) { mutableStateOf(preferences.currencyCode) }
     var budget by remember(preferences.monthlyBudgetMinor) {
-        mutableStateOf(preferences.monthlyBudgetMinor?.let { "%.2f".format(it / 100.0) } ?: "")
+        mutableStateOf(preferences.monthlyBudgetMinor?.let(::minorToInput) ?: "")
     }
     var income by remember(preferences.monthlyIncomeMinor) {
-        mutableStateOf(preferences.monthlyIncomeMinor?.let { "%.2f".format(it / 100.0) } ?: "")
+        mutableStateOf(preferences.monthlyIncomeMinor?.let(::minorToInput) ?: "")
+    }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.message, uiState.error) {
+        val feedback = uiState.error ?: uiState.message
+        if (feedback != null) {
+            snackbarHostState.showSnackbar(feedback)
+            viewModel.clearFeedback()
+        }
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        LedgerLeafTopBar(title = "More")
+    Column(Modifier.fillMaxSize().imePadding().navigationBarsPadding().verticalScroll(rememberScrollState())) {
+        LedgerLeafTopBar(title = "Settings")
+
         SectionTitle("Appearance")
         ThemeMode.entries.forEach { mode ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -57,19 +75,24 @@ fun SettingsScreen(
                 Text(mode.name.lowercase().replaceFirstChar { it.uppercase() })
             }
         }
+
         HorizontalDivider()
-        SectionTitle("Ledger preferences")
+        SectionTitle("Ledger configuration")
         OutlinedTextField(
             value = currency,
-            onValueChange = { currency = it.uppercase().take(3) },
+            onValueChange = { currency = it.filter { ch -> ch.isLetter() }.uppercase().take(3) },
             label = { Text("Currency code") },
+            supportingText = { Text("Three-letter ISO currency code, for example INR") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
         )
-        Button(onClick = { viewModel.setCurrencyCode(currency) }, modifier = Modifier.padding(horizontal = 16.dp)) { Text("Save currency") }
+        Button(onClick = { viewModel.setCurrencyCode(currency) }, modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text("Save currency")
+        }
+
         OutlinedTextField(
             value = budget,
-            onValueChange = { budget = it.filter { ch -> ch.isDigit() || ch == '.' } },
+            onValueChange = { budget = moneyInput(it) },
             label = { Text("Monthly budget (optional)") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
@@ -78,9 +101,10 @@ fun SettingsScreen(
             Button(onClick = { viewModel.setMonthlyBudget(budget) }) { Text("Save budget") }
             TextButton(onClick = { budget = ""; viewModel.clearMonthlyBudget() }) { Text("Clear") }
         }
+
         OutlinedTextField(
             value = income,
-            onValueChange = { income = it.filter { ch -> ch.isDigit() || ch == '.' } },
+            onValueChange = { income = moneyInput(it) },
             label = { Text("Monthly income (optional)") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
@@ -89,12 +113,38 @@ fun SettingsScreen(
             Button(onClick = { viewModel.setMonthlyIncome(income) }) { Text("Save income") }
             TextButton(onClick = { income = ""; viewModel.clearMonthlyIncome() }) { Text("Clear") }
         }
-        Text("Monthly period starts on day ${preferences.monthStartDay}", modifier = Modifier.padding(16.dp))
+
+        Text("Monthly period starts on day ${preferences.monthStartDay}", modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp))
+        Text(
+            "Choose a safe start day between 1 and 28.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             listOf(1, 5, 10, 15, 20, 25, 28).forEach { day ->
-                TextButton(onClick = { viewModel.setMonthStartDay(day) }) { Text(day.toString()) }
+                TextButton(onClick = { viewModel.setMonthStartDay(day) }) {
+                    Text(if (preferences.monthStartDay == day) "[$day]" else day.toString())
+                }
             }
         }
+
+        HorizontalDivider()
+        SectionTitle("PDF export")
+        SettingSwitchRow(
+            title = "Include transaction list",
+            subtitle = "Adds individual report transactions after the summaries.",
+            checked = preferences.pdfIncludeTransactions,
+            onCheckedChange = viewModel::setPdfIncludeTransactions
+        )
+        SettingSwitchRow(
+            title = "Include expense notes",
+            subtitle = "Adds mandatory expense notes to transaction rows in exported PDFs.",
+            checked = preferences.pdfIncludeNotes,
+            enabled = preferences.pdfIncludeTransactions,
+            onCheckedChange = viewModel::setPdfIncludeNotes
+        )
+
         HorizontalDivider()
         SectionTitle("Data & tools")
         SettingsEntry("Search", onSearchClick)
@@ -104,13 +154,59 @@ fun SettingsScreen(
         SettingsEntry("Budgets", onBudgetsClick)
         SettingsEntry("Archive", onArchiveClick)
         SettingsEntry("Recycle Bin", onRecycleBinClick)
+        SettingsEntry("Backup & Restore", onBackupRestoreClick)
+
+        Text(
+            "LedgerLeaf stores settings and finance data locally on this device. No login, analytics, ads, or cloud connection is used.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp)
+        )
+        SnackbarHost(snackbarHostState)
     }
 }
 
-@Composable private fun SectionTitle(title: String) { Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp)) }
-@Composable private fun SettingsEntry(title: String, onClick: () -> Unit) {
+@Composable
+private fun SettingSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp))
+}
+
+@Composable
+private fun SettingsEntry(title: String, onClick: () -> Unit) {
     TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
         Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth())
     }
     HorizontalDivider()
 }
+
+private fun moneyInput(value: String): String {
+    val filtered = value.filter { it.isDigit() || it == '.' }
+    val firstDot = filtered.indexOf('.')
+    if (firstDot < 0) return filtered
+    val whole = filtered.substring(0, firstDot)
+    val decimals = filtered.substring(firstDot + 1).replace(".", "").take(2)
+    return "$whole.$decimals"
+}
+
+private fun minorToInput(minor: Long): String =
+    java.math.BigDecimal.valueOf(minor, 2).stripTrailingZeros().toPlainString()

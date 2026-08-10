@@ -25,7 +25,8 @@ import androidx.room.PrimaryKey
         Index("categoryId"),
         Index("paymentMethodId"),
         Index("occurredAtEpochMillis"),
-        Index("deletedAtEpochMillis")
+        Index("deletedAtEpochMillis"),
+        Index("archivedAtEpochMillis")
     ]
 )
 data class ExpenseEntity(

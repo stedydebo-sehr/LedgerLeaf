@@ -16,6 +16,7 @@ sealed class LedgerLeafDestination(
     data object Favorites : LedgerLeafDestination("favorites", "Favorites")
     data object Recurring : LedgerLeafDestination("recurring", "Recurring")
     data object MonthlyClosing : LedgerLeafDestination("monthly_closing", "Monthly Closing")
+    data object BackupRestore : LedgerLeafDestination("backup_restore", "Backup & Restore")
 
     data object AddExpenseFromTemplate : LedgerLeafDestination("add_expense/from/{expenseId}", "Add from expense") {
         fun createRoute(expenseId: String) = "add_expense/from/$expenseId"

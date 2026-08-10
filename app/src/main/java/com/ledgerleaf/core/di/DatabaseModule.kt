@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ledgerleaf.core.database.LedgerLeafDatabase
+import com.ledgerleaf.data.local.dao.BackupDao
 import com.ledgerleaf.data.local.dao.CategoryDao
 import com.ledgerleaf.data.local.dao.ExpenseDao
 import com.ledgerleaf.data.local.dao.PaymentMethodDao
@@ -42,6 +43,12 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_expenses_archivedAtEpochMillis` ON `expenses` (`archivedAtEpochMillis`)")
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -49,8 +56,11 @@ object DatabaseModule {
     @Singleton
     fun provideLedgerLeafDatabase(@ApplicationContext context: Context): LedgerLeafDatabase =
         Room.databaseBuilder(context, LedgerLeafDatabase::class.java, LedgerLeafDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
+
+    @Provides
+    fun provideBackupDao(database: LedgerLeafDatabase): BackupDao = database.backupDao()
 
     @Provides
     fun provideCategoryDao(database: LedgerLeafDatabase): CategoryDao = database.categoryDao()

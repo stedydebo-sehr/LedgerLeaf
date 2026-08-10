@@ -16,20 +16,24 @@ data class NewExpense(
     val recurringFrequency: String?
 )
 
-data class DeletedExpense(
-    val expense: Expense,
-    val deletedAtEpochMillis: Long
-)
+data class DeletedExpense(val expense: Expense, val deletedAtEpochMillis: Long)
+data class ArchivedExpense(val expense: Expense, val archivedAtEpochMillis: Long)
+data class ReportableExpense(val expense: Expense, val archivedAtEpochMillis: Long?)
 
 interface ExpenseRepository {
     fun observeActiveExpenses(): Flow<List<Expense>>
     fun observeActiveExpensesInRange(fromEpochMillis: Long, toEpochMillis: Long): Flow<List<Expense>>
     fun observeDeletedExpenses(): Flow<List<DeletedExpense>>
+    fun observeArchivedExpenses(): Flow<List<ArchivedExpense>>
+    fun observeReportableExpensesInRange(fromEpochMillis: Long, toEpochMillis: Long): Flow<List<ReportableExpense>>
     suspend fun getExpense(id: String): Expense?
     suspend fun addExpense(input: NewExpense): String
     suspend fun updateExpense(id: String, input: NewExpense)
     suspend fun softDeleteExpense(id: String)
     suspend fun restoreExpense(id: String)
     suspend fun purgeDeletedBefore(cutoffEpochMillis: Long)
+    suspend fun archiveExpense(id: String)
+    suspend fun restoreArchivedExpense(id: String)
+    suspend fun purgeArchivedBefore(cutoffEpochMillis: Long)
     suspend fun getActiveTotalMinor(fromEpochMillis: Long, toEpochMillis: Long): Long
 }

@@ -1,6 +1,7 @@
 package com.ledgerleaf.data.repository
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -27,6 +28,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val monthlyBudgetMinor = longPreferencesKey("monthly_budget_minor")
         val monthlyIncomeMinor = longPreferencesKey("monthly_income_minor")
         val monthStartDay = intPreferencesKey("month_start_day")
+        val pdfIncludeTransactions = booleanPreferencesKey("pdf_include_transactions")
+        val pdfIncludeNotes = booleanPreferencesKey("pdf_include_notes")
     }
 
     override val preferences: Flow<AppPreferences> = context.ledgerLeafDataStore.data.map { values ->
@@ -36,7 +39,9 @@ class DataStoreSettingsRepository @Inject constructor(
             currencyCode = values[Keys.currencyCode] ?: "INR",
             monthlyBudgetMinor = values[Keys.monthlyBudgetMinor],
             monthlyIncomeMinor = values[Keys.monthlyIncomeMinor],
-            monthStartDay = (values[Keys.monthStartDay] ?: 1).coerceIn(1, 28)
+            monthStartDay = (values[Keys.monthStartDay] ?: 1).coerceIn(1, 28),
+            pdfIncludeTransactions = values[Keys.pdfIncludeTransactions] ?: true,
+            pdfIncludeNotes = values[Keys.pdfIncludeNotes] ?: true
         )
     }
 
@@ -63,5 +68,27 @@ class DataStoreSettingsRepository @Inject constructor(
 
     override suspend fun setMonthStartDay(day: Int) {
         context.ledgerLeafDataStore.edit { it[Keys.monthStartDay] = day.coerceIn(1, 28) }
+    }
+
+    override suspend fun setPdfIncludeTransactions(include: Boolean) {
+        context.ledgerLeafDataStore.edit { it[Keys.pdfIncludeTransactions] = include }
+    }
+
+    override suspend fun setPdfIncludeNotes(include: Boolean) {
+        context.ledgerLeafDataStore.edit { it[Keys.pdfIncludeNotes] = include }
+    }
+
+    override suspend fun restorePreferences(preferences: AppPreferences) {
+        context.ledgerLeafDataStore.edit { values ->
+            values[Keys.themeMode] = preferences.themeMode.name
+            values[Keys.currencyCode] = preferences.currencyCode
+            if (preferences.monthlyBudgetMinor == null) values.remove(Keys.monthlyBudgetMinor)
+            else values[Keys.monthlyBudgetMinor] = preferences.monthlyBudgetMinor
+            if (preferences.monthlyIncomeMinor == null) values.remove(Keys.monthlyIncomeMinor)
+            else values[Keys.monthlyIncomeMinor] = preferences.monthlyIncomeMinor
+            values[Keys.monthStartDay] = preferences.monthStartDay.coerceIn(1, 28)
+            values[Keys.pdfIncludeTransactions] = preferences.pdfIncludeTransactions
+            values[Keys.pdfIncludeNotes] = preferences.pdfIncludeNotes
+        }
     }
 }

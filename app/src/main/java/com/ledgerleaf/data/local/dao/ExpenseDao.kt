@@ -25,6 +25,14 @@ interface ExpenseDao {
     fun observeDeletedExpenses(): Flow<List<ExpenseWithDetails>>
 
     @Transaction
+    @Query("SELECT * FROM expenses WHERE deletedAtEpochMillis IS NULL AND archivedAtEpochMillis IS NOT NULL ORDER BY archivedAtEpochMillis DESC")
+    fun observeArchivedExpenses(): Flow<List<ExpenseWithDetails>>
+
+    @Transaction
+    @Query("SELECT * FROM expenses WHERE deletedAtEpochMillis IS NULL AND occurredAtEpochMillis BETWEEN :from AND :to ORDER BY occurredAtEpochMillis DESC")
+    fun observeReportableExpensesInRange(from: Long, to: Long): Flow<List<ExpenseWithDetails>>
+
+    @Transaction
     @Query("SELECT * FROM expenses WHERE id = :id LIMIT 1")
     suspend fun getExpense(id: String): ExpenseWithDetails?
 
@@ -51,6 +59,15 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expenses WHERE deletedAtEpochMillis IS NOT NULL AND deletedAtEpochMillis < :cutoff")
     suspend fun purgeDeletedBefore(cutoff: Long)
+
+    @Query("UPDATE expenses SET archivedAtEpochMillis = :archivedAt, updatedAtEpochMillis = :updatedAt WHERE id = :id AND deletedAtEpochMillis IS NULL AND archivedAtEpochMillis IS NULL")
+    suspend fun archive(id: String, archivedAt: Long, updatedAt: Long)
+
+    @Query("UPDATE expenses SET archivedAtEpochMillis = NULL, updatedAtEpochMillis = :updatedAt WHERE id = :id AND deletedAtEpochMillis IS NULL AND archivedAtEpochMillis IS NOT NULL")
+    suspend fun restoreArchived(id: String, updatedAt: Long)
+
+    @Query("DELETE FROM expenses WHERE deletedAtEpochMillis IS NULL AND archivedAtEpochMillis IS NOT NULL AND archivedAtEpochMillis < :cutoff")
+    suspend fun purgeArchivedBefore(cutoff: Long)
 
     @Transaction
     suspend fun insertExpenseWithSubcategories(expense: ExpenseEntity, subcategoryIds: List<String>) {

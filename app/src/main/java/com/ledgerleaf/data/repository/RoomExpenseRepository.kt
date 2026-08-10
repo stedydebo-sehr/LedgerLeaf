@@ -9,7 +9,9 @@ import com.ledgerleaf.domain.model.CategorySelectionMode
 import com.ledgerleaf.domain.model.Expense
 import com.ledgerleaf.domain.model.PaymentMethod
 import com.ledgerleaf.domain.model.Subcategory
+import com.ledgerleaf.domain.repository.ArchivedExpense
 import com.ledgerleaf.domain.repository.DeletedExpense
+import com.ledgerleaf.domain.repository.ReportableExpense
 import com.ledgerleaf.domain.repository.ExpenseRepository
 import com.ledgerleaf.domain.repository.NewExpense
 import javax.inject.Inject
@@ -33,6 +35,18 @@ class RoomExpenseRepository @Inject constructor(
             list.mapNotNull { item ->
                 item.expense.deletedAtEpochMillis?.let { deletedAt -> DeletedExpense(item.toDomain(), deletedAt) }
             }
+        }
+
+    override fun observeArchivedExpenses(): Flow<List<ArchivedExpense>> =
+        dao.observeArchivedExpenses().map { list ->
+            list.mapNotNull { item ->
+                item.expense.archivedAtEpochMillis?.let { archivedAt -> ArchivedExpense(item.toDomain(), archivedAt) }
+            }
+        }
+
+    override fun observeReportableExpensesInRange(fromEpochMillis: Long, toEpochMillis: Long): Flow<List<ReportableExpense>> =
+        dao.observeReportableExpensesInRange(fromEpochMillis, toEpochMillis).map { list ->
+            list.map { ReportableExpense(it.toDomain(), it.expense.archivedAtEpochMillis) }
         }
 
     override suspend fun getExpense(id: String): Expense? = dao.getExpense(id)?.toDomain()
@@ -92,6 +106,19 @@ class RoomExpenseRepository @Inject constructor(
 
     override suspend fun purgeDeletedBefore(cutoffEpochMillis: Long) {
         dao.purgeDeletedBefore(cutoffEpochMillis)
+    }
+
+    override suspend fun archiveExpense(id: String) {
+        val now = System.currentTimeMillis()
+        dao.archive(id, now, now)
+    }
+
+    override suspend fun restoreArchivedExpense(id: String) {
+        dao.restoreArchived(id, System.currentTimeMillis())
+    }
+
+    override suspend fun purgeArchivedBefore(cutoffEpochMillis: Long) {
+        dao.purgeArchivedBefore(cutoffEpochMillis)
     }
 
     override suspend fun getActiveTotalMinor(fromEpochMillis: Long, toEpochMillis: Long): Long =

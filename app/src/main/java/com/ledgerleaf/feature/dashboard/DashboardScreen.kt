@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ledgerleaf.R
@@ -97,12 +98,35 @@ fun DashboardScreen(
             .background(if (isDark) Color(0xFF050605) else Color(0xFF8A6B45))
     ) {
         val showSideTabs = maxWidth > 420.dp
-        val frameEnd = if (showSideTabs) 56.dp else 8.dp
 
+        // Layer 1 is the BoxWithConstraints background above.
+        // Layer 2: diary tabs. They sit behind the notebook and extend 3dp
+        // underneath its right edge, leaving 12dp visibly protruding.
+        if (showSideTabs) {
+            SideTabs(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 112.dp, end = 6.dp)
+                    .zIndex(0f),
+                isDark = isDark,
+                selected = section,
+                onSelect = onSectionChange
+            )
+        }
+
+        // Layer 3: notebook paper. Explicitly above the tab rail.
+        // On wide layouts the page ends 18dp from screen-right; with 15dp tabs
+        // ending 6dp from screen-right, the page covers the inner 3dp of each tab.
         LedgerPaperFrame(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = frameEnd, top = 48.dp, bottom = 8.dp),
+                .padding(
+                    start = 8.dp,
+                    end = if (showSideTabs) 18.dp else 8.dp,
+                    top = 48.dp,
+                    bottom = 8.dp
+                )
+                .zIndex(1f),
             isDark = isDark
         ) {
             if (section == NotebookSection.Ledger) {
@@ -173,16 +197,6 @@ fun DashboardScreen(
             }
         }
 
-        if (showSideTabs) {
-            SideTabs(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 112.dp, end = 6.dp),
-                isDark = isDark,
-                selected = section,
-                onSelect = onSectionChange
-            )
-        }
     }
 }
 
@@ -413,7 +427,7 @@ private fun BudgetProgressCard(state: DashboardUiState) {
                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f),
                 strokeCap = StrokeCap.Round
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(5.dp))
             Text(
                 if (budget == null) "Set a monthly budget in Settings"
                 else "${money(state.monthTotalMinor, state.preferences.currencyCode)} of ${money(budget, state.preferences.currencyCode)}",
@@ -608,14 +622,14 @@ private fun SideTabs(
             val active = tab == selected
             Box(
                 modifier = Modifier
-                    .width(50.dp)
+                    .width(15.dp)
                     .height(82.dp)
-                    .clip(RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp))
+                    .clip(RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 7.dp, bottomEnd = 7.dp))
                     .background(if (active) activeBackground else inactiveBackground)
                     .border(
                         1.dp,
                         edge,
-                        RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp)
+                        RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 7.dp, bottomEnd = 7.dp)
                     )
                     .semantics {
                         contentDescription = "${tab.label} ledger tab"
@@ -628,19 +642,19 @@ private fun SideTabs(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(5.dp))
                     Text(
                         tab.glyph,
                         modifier = Modifier.height(18.dp),
-                        fontSize = 14.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 10.sp,
+                        lineHeight = 10.sp,
                         color = if (active) activeInk else inactiveInk,
                         maxLines = 1
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(3.dp))
                     Box(
                         modifier = Modifier
-                            .width(42.dp)
+                            .width(15.dp)
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
@@ -649,8 +663,8 @@ private fun SideTabs(
                             modifier = Modifier
                                 .rotate(90f)
                                 .requiredWidth(56.dp),
-                            fontSize = 9.5.sp,
-                            lineHeight = 10.sp,
+                            fontSize = 9.sp,
+                            lineHeight = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.sp,
                             textAlign = TextAlign.Center,
@@ -659,7 +673,7 @@ private fun SideTabs(
                             softWrap = false
                         )
                     }
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(5.dp))
                 }
             }
         }

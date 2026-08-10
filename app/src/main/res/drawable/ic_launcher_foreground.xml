@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!--
-        The source artwork is optically a little right-heavy because of the
-        dark notebook cover. Keep the existing asset and shift the foreground
-        2dp left inside the adaptive-icon safe area instead of regenerating it.
-    -->
+    <!-- Approved logo is already optically centered. Keep symmetric adaptive-icon insets. -->
     <item
-        android:left="12dp"
+        android:left="14dp"
         android:top="14dp"
-        android:right="16dp"
+        android:right="14dp"
         android:bottom="14dp"
         android:drawable="@drawable/ledgerleaf_logo_light" />
 </layer-list>

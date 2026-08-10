@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -142,15 +143,10 @@ fun DashboardScreen(
             }
         }
 
-        ThemeTogglePill(
-            isDark = isDark,
-            onClick = { viewModel.togglePaperMode(isDark) },
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 14.dp)
-        )
-
         if (showSideTabs) {
             SideTabs(
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 104.dp, end = 2.dp),
+                isDark = isDark,
                 onLedger = viewModel::returnToCurrentMonth,
                 onHistory = onHistoryClick,
                 onSearch = onSearchClick,
@@ -223,7 +219,7 @@ private fun LedgerHeader(
             painter = painterResource(if (isDark) R.drawable.ledgerleaf_logo_dark else R.drawable.ledgerleaf_logo_light),
             contentDescription = "LedgerLeaf logo",
             contentScale = ContentScale.Fit,
-            modifier = Modifier.offset(x = (-2).dp).size(32.dp).clip(RoundedCornerShape(8.dp))
+            modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
         )
         Column(Modifier.weight(1f).padding(start = 9.dp)) {
             Text(
@@ -243,31 +239,6 @@ private fun LedgerHeader(
         LedgerGlyphButton("▤", "Currency", onCurrencyClick)
         Spacer(Modifier.width(8.dp))
         LedgerIconButton(Icons.Default.Settings, "Settings", onSettingsClick)
-    }
-}
-
-@Composable
-private fun ThemeTogglePill(isDark: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
-        shape = CircleShape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp)
-        ) {
-            Text(if (isDark) "☼" else "☾", color = MaterialTheme.colorScheme.primary, fontSize = 15.sp)
-            Text(
-                if (isDark) "Paper mode" else "Night mode",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontStyle = FontStyle.Italic
-            )
-        }
     }
 }
 
@@ -594,6 +565,7 @@ private fun LedgerCard(content: @Composable () -> Unit) {
 @Composable
 private fun SideTabs(
     modifier: Modifier,
+    isDark: Boolean,
     onLedger: () -> Unit,
     onHistory: () -> Unit,
     onSearch: () -> Unit,
@@ -609,27 +581,54 @@ private fun SideTabs(
         Triple("Budgets", "▣", onBudgets),
         Triple("Settings", "•••", onSettings)
     )
+    val inactiveBackground = if (isDark) Color(0xFF1C1F16) else Color(0xFFEFE7D3)
+    val inactiveInk = if (isDark) Color(0xFFA79F83) else Color(0xFF6B6142)
+    val activeBackground = if (isDark) Color(0xFF35431F) else Color(0xFF2D5A1E)
+    val activeInk = if (isDark) Color(0xFFEEF2E2) else Color(0xFFF3F0E4)
+
     Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
         tabs.forEachIndexed { index, tab ->
+            val active = index == 0
             Surface(
-                modifier = Modifier.width(52.dp).clickable(onClick = tab.third),
-                color = if (index == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(104.dp)
+                    .semantics {
+                        contentDescription = tab.first
+                        role = Role.Button
+                    }
+                    .clickable(onClick = tab.third),
+                color = if (active) activeBackground else inactiveBackground,
+                contentColor = if (active) activeInk else inactiveInk,
                 shape = RoundedCornerShape(14.dp),
-                shadowElevation = 2.dp
+                shadowElevation = 3.dp
             ) {
                 Column(
-                    Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(tab.second, fontSize = 15.sp, color = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer)
                     Text(
-                        tab.first.uppercase(),
-                        fontSize = 8.5.sp,
-                        letterSpacing = .5.sp,
-                        color = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        text = tab.second,
+                        fontSize = if (tab.first == "Settings") 12.sp else 15.sp,
+                        color = if (active) activeInk else inactiveInk,
                         maxLines = 1
                     )
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = tab.first.uppercase(),
+                            modifier = Modifier.rotate(90f).requiredWidth(72.dp),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.5.sp,
+                            color = if (active) activeInk else inactiveInk,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }

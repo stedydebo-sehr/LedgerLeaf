@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +22,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +35,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -42,6 +43,7 @@ import com.ledgerleaf.feature.archive.ArchiveScreen
 import com.ledgerleaf.feature.backup.BackupScreen
 import com.ledgerleaf.feature.budget.BudgetsScreen
 import com.ledgerleaf.feature.dashboard.DashboardScreen
+import com.ledgerleaf.feature.dashboard.NotebookSection
 import com.ledgerleaf.feature.favorites.FavoritesScreen
 import com.ledgerleaf.feature.history.HistoryScreen
 import com.ledgerleaf.feature.monthlyclosing.MonthlyClosingScreen
@@ -54,33 +56,32 @@ import com.ledgerleaf.feature.transaction.AddExpenseScreen
 import com.ledgerleaf.feature.transaction.EditExpenseScreen
 import com.ledgerleaf.feature.transaction.ExpenseDetailsScreen
 
-private val primaryDestinations = listOf(
-    LedgerLeafDestination.Dashboard,
-    LedgerLeafDestination.History,
-    LedgerLeafDestination.Reports,
-    LedgerLeafDestination.Settings
-)
-
 @Composable
 fun LedgerLeafNavHost() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = backStackEntry?.destination
+    val currentRoute = backStackEntry?.destination?.route
+    var notebookSection by rememberSaveable { mutableStateOf(NotebookSection.Ledger) }
+
+    val openNotebook: (NotebookSection) -> Unit = { section ->
+        notebookSection = section
+        if (currentRoute != LedgerLeafDestination.Dashboard.route) {
+            navController.navigate(LedgerLeafDestination.Dashboard.route) {
+                popUpTo(LedgerLeafDestination.Dashboard.route) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             LedgerBottomNavigation(
-                currentRouteSelected = { route ->
-                    currentDestination?.hierarchy?.any { it.route == route } == true
-                },
-                onNavigate = { destination ->
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
+                selectedSection = notebookSection,
+                notebookVisible = currentRoute == LedgerLeafDestination.Dashboard.route,
+                moreSelected = currentRoute == LedgerLeafDestination.Settings.route,
+                onSelectSection = openNotebook,
+                onMore = { navController.navigate(LedgerLeafDestination.Settings.route) { launchSingleTop = true } },
                 onAdd = { navController.navigate(LedgerLeafDestination.AddExpense.route) }
             )
         }
@@ -89,14 +90,12 @@ fun LedgerLeafNavHost() {
             NavHost(navController, startDestination = LedgerLeafDestination.Dashboard.route) {
                 composable(LedgerLeafDestination.Dashboard.route) {
                     DashboardScreen(
-                        onReportsClick = { navController.navigate(LedgerLeafDestination.Reports.route) },
+                        section = notebookSection,
+                        onSectionChange = { notebookSection = it },
                         onSettingsClick = { navController.navigate(LedgerLeafDestination.Settings.route) },
-                        onSearchClick = { navController.navigate(LedgerLeafDestination.Search.route) },
-                        onBudgetsClick = { navController.navigate(LedgerLeafDestination.Budgets.route) },
-                        onExpenseClick = { expenseId -> navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId)) },
-                        onHistoryClick = { navController.navigate(LedgerLeafDestination.History.route) },
-                        onFavoritesClick = { navController.navigate(LedgerLeafDestination.Favorites.route) },
-                        onRecurringClick = { navController.navigate(LedgerLeafDestination.Recurring.route) }
+                        onExpenseClick = { expenseId ->
+                            navController.navigate(LedgerLeafDestination.ExpenseDetails.createRoute(expenseId))
+                        }
                     )
                 }
                 composable(LedgerLeafDestination.History.route) {
@@ -114,8 +113,8 @@ fun LedgerLeafNavHost() {
                 composable(LedgerLeafDestination.ExpenseDetails.route) {
                     ExpenseDetailsScreen(
                         onEdit = { navController.navigate(LedgerLeafDestination.EditExpense.createRoute(it)) },
-                        onDeleted = { navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false) },
-                        onArchived = { navController.popBackStack(LedgerLeafDestination.History.route, inclusive = false) }
+                        onDeleted = { openNotebook(NotebookSection.History) },
+                        onArchived = { openNotebook(NotebookSection.History) }
                     )
                 }
                 composable(LedgerLeafDestination.EditExpense.route) {
@@ -124,14 +123,14 @@ fun LedgerLeafNavHost() {
                 composable(LedgerLeafDestination.Reports.route) { ReportsScreen() }
                 composable(LedgerLeafDestination.Settings.route) {
                     SettingsScreen(
-                        { navController.navigate(LedgerLeafDestination.Search.route) },
-                        { navController.navigate(LedgerLeafDestination.Archive.route) },
-                        { navController.navigate(LedgerLeafDestination.RecycleBin.route) },
-                        { navController.navigate(LedgerLeafDestination.Budgets.route) },
-                        { navController.navigate(LedgerLeafDestination.Favorites.route) },
-                        { navController.navigate(LedgerLeafDestination.Recurring.route) },
-                        { navController.navigate(LedgerLeafDestination.MonthlyClosing.route) },
-                        { navController.navigate(LedgerLeafDestination.BackupRestore.route) }
+                        onSearchClick = { openNotebook(NotebookSection.Search) },
+                        onArchiveClick = { navController.navigate(LedgerLeafDestination.Archive.route) },
+                        onRecycleBinClick = { navController.navigate(LedgerLeafDestination.RecycleBin.route) },
+                        onBudgetsClick = { openNotebook(NotebookSection.Budgets) },
+                        onFavoritesClick = { navController.navigate(LedgerLeafDestination.Favorites.route) },
+                        onRecurringClick = { navController.navigate(LedgerLeafDestination.Recurring.route) },
+                        onMonthlyClosingClick = { navController.navigate(LedgerLeafDestination.MonthlyClosing.route) },
+                        onBackupRestoreClick = { navController.navigate(LedgerLeafDestination.BackupRestore.route) }
                     )
                 }
                 composable(LedgerLeafDestination.Search.route) {
@@ -163,12 +162,15 @@ fun LedgerLeafNavHost() {
 
 @Composable
 private fun LedgerBottomNavigation(
-    currentRouteSelected: (String) -> Boolean,
-    onNavigate: (LedgerLeafDestination) -> Unit,
+    selectedSection: NotebookSection,
+    notebookVisible: Boolean,
+    moreSelected: Boolean,
+    onSelectSection: (NotebookSection) -> Unit,
+    onMore: () -> Unit,
     onAdd: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
+        modifier = Modifier.padding(horizontal = 8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -179,8 +181,12 @@ private fun LedgerBottomNavigation(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            LedgerNavItem(primaryDestinations[0], "⌂", "Home", currentRouteSelected(primaryDestinations[0].route)) { onNavigate(primaryDestinations[0]) }
-            LedgerNavItem(primaryDestinations[1], "▣", "History", currentRouteSelected(primaryDestinations[1].route)) { onNavigate(primaryDestinations[1]) }
+            LedgerNavItem("⌂", "Home", notebookVisible && selectedSection == NotebookSection.Ledger) {
+                onSelectSection(NotebookSection.Ledger)
+            }
+            LedgerNavItem("▣", "History", notebookVisible && selectedSection == NotebookSection.History) {
+                onSelectSection(NotebookSection.History)
+            }
             Surface(
                 modifier = Modifier
                     .offset(y = (-16).dp)
@@ -193,18 +199,19 @@ private fun LedgerBottomNavigation(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = .55f))
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("+", color = MaterialTheme.colorScheme.onPrimary, fontSize = 32.sp, fontWeight = FontWeight.Normal)
+                    Text("+", color = MaterialTheme.colorScheme.onPrimary, fontSize = 32.sp)
                 }
             }
-            LedgerNavItem(primaryDestinations[2], "◫", "Reports", currentRouteSelected(primaryDestinations[2].route)) { onNavigate(primaryDestinations[2]) }
-            LedgerNavItem(primaryDestinations[3], "•••", "More", currentRouteSelected(primaryDestinations[3].route)) { onNavigate(primaryDestinations[3]) }
+            LedgerNavItem("◫", "Reports", notebookVisible && selectedSection == NotebookSection.Reports) {
+                onSelectSection(NotebookSection.Reports)
+            }
+            LedgerNavItem("•••", "More", moreSelected, onMore)
         }
     }
 }
 
 @Composable
 private fun LedgerNavItem(
-    destination: LedgerLeafDestination,
     glyph: String,
     label: String,
     selected: Boolean,

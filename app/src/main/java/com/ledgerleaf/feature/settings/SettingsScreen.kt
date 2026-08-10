@@ -1,17 +1,25 @@
 package com.ledgerleaf.feature.settings
 
+import android.graphics.BitmapFactory
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
@@ -27,6 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +59,7 @@ fun SettingsScreen(
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var profileName by remember(preferences.displayName) { mutableStateOf(preferences.displayName) }
     var currency by remember(preferences.currencyCode) { mutableStateOf(preferences.currencyCode) }
     var budget by remember(preferences.monthlyBudgetMinor) {
         mutableStateOf(preferences.monthlyBudgetMinor?.let(::minorToInput) ?: "")
@@ -56,6 +68,9 @@ fun SettingsScreen(
         mutableStateOf(preferences.monthlyIncomeMinor?.let(::minorToInput) ?: "")
     }
     val snackbarHostState = remember { SnackbarHostState() }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let(viewModel::importProfileImage)
+    }
 
     LaunchedEffect(uiState.message, uiState.error) {
         val feedback = uiState.error ?: uiState.message
@@ -65,9 +80,35 @@ fun SettingsScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().imePadding().navigationBarsPadding().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         LedgerLeafTopBar(title = "Settings")
 
+        SectionTitle("Profile")
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            ProfileImage(preferences.profileImagePath, preferences.displayName)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = profileName,
+                    onValueChange = { profileName = it.take(80) },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { viewModel.setDisplayName(profileName) }) { Text("Save name") }
+                    OutlinedButton(onClick = { photoPicker.launch("image/*") }) { Text("Choose photo") }
+                }
+                if (!preferences.profileImagePath.isNullOrBlank()) {
+                    TextButton(onClick = viewModel::clearProfileImage) { Text("Remove photo") }
+                }
+            }
+        }
+
+        HorizontalDivider()
         SectionTitle("Appearance")
         ThemeMode.entries.forEach { mode ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -157,12 +198,42 @@ fun SettingsScreen(
         SettingsEntry("Backup & Restore", onBackupRestoreClick)
 
         Text(
-            "LedgerLeaf stores settings and finance data locally on this device. No login, analytics, ads, or cloud connection is used.",
+            "LedgerLeaf stores settings, profile and finance data locally on this device. No login, analytics, ads, or cloud connection is used.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp)
         )
         SnackbarHost(snackbarHostState)
+    }
+}
+
+@Composable
+private fun ProfileImage(path: String?, displayName: String) {
+    val bitmap = remember(path) {
+        path?.takeIf { it.isNotBlank() }?.let { BitmapFactory.decodeFile(it) }?.asImageBitmap()
+    }
+    Box(
+        Modifier
+            .size(76.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Profile picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                displayName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "♧",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 

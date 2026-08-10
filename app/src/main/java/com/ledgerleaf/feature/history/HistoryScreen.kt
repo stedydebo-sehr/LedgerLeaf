@@ -39,12 +39,13 @@ import java.time.ZoneId
 @Composable
 fun HistoryScreen(
     onExpenseClick: (String) -> Unit = {},
+    embedded: Boolean = false,
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize()) {
-        LedgerLeafTopBar("History")
+        if (!embedded) LedgerLeafTopBar("History")
 
         Row(
             modifier = Modifier

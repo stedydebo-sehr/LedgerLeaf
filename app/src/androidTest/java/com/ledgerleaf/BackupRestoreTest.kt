@@ -70,5 +70,7 @@ private class FakeSettingsRepository : SettingsRepository {
     override suspend fun setMonthStartDay(day: Int) { state.value = state.value.copy(monthStartDay = day) }
     override suspend fun setPdfIncludeTransactions(include: Boolean) { state.value = state.value.copy(pdfIncludeTransactions = include) }
     override suspend fun setPdfIncludeNotes(include: Boolean) { state.value = state.value.copy(pdfIncludeNotes = include) }
+    override suspend fun setDisplayName(name: String) { state.value = state.value.copy(displayName = name) }
+    override suspend fun setProfileImagePath(path: String?) { state.value = state.value.copy(profileImagePath = path) }
     override suspend fun restorePreferences(preferences: AppPreferences) { state.value = preferences }
 }

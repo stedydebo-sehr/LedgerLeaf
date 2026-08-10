@@ -71,6 +71,10 @@ import com.ledgerleaf.core.ui.theme.LedgerRed
 import com.ledgerleaf.core.ui.theme.LedgerSpiralMetal
 import com.ledgerleaf.core.utils.CurrencyFormatter
 import com.ledgerleaf.domain.model.Expense
+import com.ledgerleaf.feature.search.SearchScreen
+import com.ledgerleaf.feature.reports.ReportsScreen
+import com.ledgerleaf.feature.history.HistoryScreen
+import com.ledgerleaf.feature.budget.BudgetsScreen
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
@@ -78,14 +82,10 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun DashboardScreen(
-    onReportsClick: () -> Unit,
+    section: NotebookSection,
+    onSectionChange: (NotebookSection) -> Unit,
     onSettingsClick: () -> Unit,
-    onSearchClick: () -> Unit,
-    onBudgetsClick: () -> Unit,
     onExpenseClick: (String) -> Unit,
-    onHistoryClick: () -> Unit,
-    onFavoritesClick: () -> Unit,
-    onRecurringClick: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -97,62 +97,90 @@ fun DashboardScreen(
             .background(if (isDark) Color(0xFF050605) else Color(0xFF8A6B45))
     ) {
         val showSideTabs = maxWidth > 420.dp
-        val outerHorizontal = if (showSideTabs) 16.dp else 8.dp
-        val frameEnd = if (showSideTabs) 30.dp else 8.dp
+        val frameEnd = if (showSideTabs) 52.dp else 8.dp
 
         LedgerPaperFrame(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = outerHorizontal, end = frameEnd, top = 48.dp, bottom = 8.dp),
+                .padding(start = 8.dp, end = frameEnd, top = 48.dp, bottom = 8.dp),
             isDark = isDark
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 54.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                item { Spacer(Modifier.height(16.dp)) }
-                item {
-                    LedgerHeader(
-                        isDark = isDark,
-                        onCurrencyClick = onSettingsClick,
-                        onSettingsClick = onSettingsClick
-                    )
+            if (section == NotebookSection.Ledger) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 54.dp, end = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item { Spacer(Modifier.height(16.dp)) }
+                    item {
+                        LedgerHeader(
+                            isDark = isDark,
+                            onCurrencyClick = onSettingsClick,
+                            onSettingsClick = onSettingsClick
+                        )
+                    }
+                    item {
+                        MonthHeader(
+                            title = state.periodTitle,
+                            range = state.periodLabel,
+                            onPrevious = viewModel::previousMonth,
+                            onNext = viewModel::nextMonth
+                        )
+                    }
+                    item { StatsCard(state) }
+                    item { BudgetProgressCard(state) }
+                    item {
+                        RecentEntriesCard(
+                            expenses = state.recent,
+                            currency = state.preferences.currencyCode,
+                            onViewAll = { onSectionChange(NotebookSection.History) },
+                            onExpenseClick = onExpenseClick
+                        )
+                    }
+                    item { MandatoryNotesFooter() }
+                    item { Spacer(Modifier.height(22.dp)) }
                 }
-                item {
-                    MonthHeader(
-                        title = state.periodTitle,
-                        range = state.periodLabel,
-                        onPrevious = viewModel::previousMonth,
-                        onNext = viewModel::nextMonth
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 54.dp, end = 12.dp, top = 16.dp, bottom = 8.dp)
+                ) {
+                    Text(
+                        section.label,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     )
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        when (section) {
+                            NotebookSection.History -> HistoryScreen(
+                                onExpenseClick = onExpenseClick,
+                                embedded = true
+                            )
+                            NotebookSection.Search -> SearchScreen(
+                                onExpenseClick = onExpenseClick,
+                                embedded = true
+                            )
+                            NotebookSection.Reports -> ReportsScreen(embedded = true)
+                            NotebookSection.Budgets -> BudgetsScreen(embedded = true)
+                            NotebookSection.Ledger -> Unit
+                        }
+                    }
                 }
-                item { StatsCard(state) }
-                item { BudgetProgressCard(state) }
-                item {
-                    RecentEntriesCard(
-                        expenses = state.recent,
-                        currency = state.preferences.currencyCode,
-                        onViewAll = onHistoryClick,
-                        onExpenseClick = onExpenseClick
-                    )
-                }
-                item { MandatoryNotesFooter() }
-                item { Spacer(Modifier.height(22.dp)) }
             }
         }
 
         if (showSideTabs) {
             SideTabs(
-                modifier = Modifier.align(Alignment.TopEnd).padding(top = 104.dp, end = 2.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 112.dp, end = 6.dp),
                 isDark = isDark,
-                onLedger = viewModel::returnToCurrentMonth,
-                onHistory = onHistoryClick,
-                onSearch = onSearchClick,
-                onReports = onReportsClick,
-                onBudgets = onBudgetsClick,
-                onSettings = onSettingsClick
+                selected = section,
+                onSelect = onSectionChange
             )
         }
     }
@@ -566,74 +594,63 @@ private fun LedgerCard(content: @Composable () -> Unit) {
 private fun SideTabs(
     modifier: Modifier,
     isDark: Boolean,
-    onLedger: () -> Unit,
-    onHistory: () -> Unit,
-    onSearch: () -> Unit,
-    onReports: () -> Unit,
-    onBudgets: () -> Unit,
-    onSettings: () -> Unit
+    selected: NotebookSection,
+    onSelect: (NotebookSection) -> Unit
 ) {
-    val tabs = listOf(
-        Triple("Ledger", "⌂", onLedger),
-        Triple("History", "◷", onHistory),
-        Triple("Search", "⌕", onSearch),
-        Triple("Reports", "▥", onReports),
-        Triple("Budgets", "▣", onBudgets),
-        Triple("Settings", "•••", onSettings)
-    )
     val inactiveBackground = if (isDark) Color(0xFF1C1F16) else Color(0xFFEFE7D3)
     val inactiveInk = if (isDark) Color(0xFFA79F83) else Color(0xFF6B6142)
     val activeBackground = if (isDark) Color(0xFF35431F) else Color(0xFF2D5A1E)
     val activeInk = if (isDark) Color(0xFFEEF2E2) else Color(0xFFF3F0E4)
+    val edge = if (isDark) Color(0x334E5C3D) else Color(0x335A4628)
 
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        tabs.forEachIndexed { index, tab ->
-            val active = index == 0
-            Surface(
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        NotebookSection.entries.forEach { tab ->
+            val active = tab == selected
+            Box(
                 modifier = Modifier
-                    .width(52.dp)
-                    .height(104.dp)
+                    .width(50.dp)
+                    .height(82.dp)
+                    .clip(RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp))
+                    .background(if (active) activeBackground else inactiveBackground)
+                    .border(
+                        1.dp,
+                        edge,
+                        RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 12.dp, bottomEnd = 12.dp)
+                    )
                     .semantics {
-                        contentDescription = tab.first
-                        role = Role.Button
+                        contentDescription = "${tab.label} ledger tab"
+                        role = Role.Tab
                     }
-                    .clickable(onClick = tab.third),
-                color = if (active) activeBackground else inactiveBackground,
-                contentColor = if (active) activeInk else inactiveInk,
-                shape = RoundedCornerShape(14.dp),
-                shadowElevation = 3.dp
+                    .clickable { onSelect(tab) },
+                contentAlignment = Alignment.Center
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = tab.second,
-                        fontSize = if (tab.first == "Settings") 12.sp else 15.sp,
+                        tab.glyph,
+                        fontSize = 14.sp,
                         color = if (active) activeInk else inactiveInk,
                         maxLines = 1
                     )
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tab.first.uppercase(),
-                            modifier = Modifier.rotate(90f).requiredWidth(72.dp),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.5.sp,
-                            color = if (active) activeInk else inactiveInk,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                    Text(
+                        text = tab.label.uppercase(),
+                        modifier = Modifier.rotate(90f).requiredWidth(58.dp),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center,
+                        color = if (active) activeInk else inactiveInk,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
     }
 }
+
 
 private fun categoryGlyph(name: String): String = when {
     name.contains("grocer", true) -> "♧"

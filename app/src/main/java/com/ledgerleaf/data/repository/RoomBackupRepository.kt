@@ -213,11 +213,13 @@ private fun AppPreferences.toJson() = JSONObject()
     .put("themeMode", themeMode.name).put("currencyCode", currencyCode)
     .putNullable("monthlyBudgetMinor", monthlyBudgetMinor).putNullable("monthlyIncomeMinor", monthlyIncomeMinor)
     .put("monthStartDay", monthStartDay).put("pdfIncludeTransactions", pdfIncludeTransactions).put("pdfIncludeNotes", pdfIncludeNotes)
+    .put("displayName", displayName)
 
 private fun JSONObject.toPreferences() = AppPreferences(
     themeMode = runCatching { ThemeMode.valueOf(optString("themeMode", ThemeMode.SYSTEM.name)) }.getOrDefault(ThemeMode.SYSTEM),
     currencyCode = optString("currencyCode", "INR").takeIf { it.length == 3 } ?: "INR",
     monthlyBudgetMinor = nullableLong("monthlyBudgetMinor"), monthlyIncomeMinor = nullableLong("monthlyIncomeMinor"),
     monthStartDay = optInt("monthStartDay", 1).coerceIn(1, 28),
-    pdfIncludeTransactions = optBoolean("pdfIncludeTransactions", true), pdfIncludeNotes = optBoolean("pdfIncludeNotes", true)
+    pdfIncludeTransactions = optBoolean("pdfIncludeTransactions", true), pdfIncludeNotes = optBoolean("pdfIncludeNotes", true),
+    displayName = optString("displayName", ""), profileImagePath = null
 )

@@ -30,6 +30,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val monthStartDay = intPreferencesKey("month_start_day")
         val pdfIncludeTransactions = booleanPreferencesKey("pdf_include_transactions")
         val pdfIncludeNotes = booleanPreferencesKey("pdf_include_notes")
+        val displayName = stringPreferencesKey("display_name")
+        val profileImagePath = stringPreferencesKey("profile_image_path")
     }
 
     override val preferences: Flow<AppPreferences> = context.ledgerLeafDataStore.data.map { values ->
@@ -41,7 +43,9 @@ class DataStoreSettingsRepository @Inject constructor(
             monthlyIncomeMinor = values[Keys.monthlyIncomeMinor],
             monthStartDay = (values[Keys.monthStartDay] ?: 1).coerceIn(1, 28),
             pdfIncludeTransactions = values[Keys.pdfIncludeTransactions] ?: true,
-            pdfIncludeNotes = values[Keys.pdfIncludeNotes] ?: true
+            pdfIncludeNotes = values[Keys.pdfIncludeNotes] ?: true,
+            displayName = values[Keys.displayName] ?: "",
+            profileImagePath = values[Keys.profileImagePath]
         )
     }
 
@@ -78,6 +82,18 @@ class DataStoreSettingsRepository @Inject constructor(
         context.ledgerLeafDataStore.edit { it[Keys.pdfIncludeNotes] = include }
     }
 
+
+
+    override suspend fun setDisplayName(name: String) {
+        context.ledgerLeafDataStore.edit { it[Keys.displayName] = name.trim().take(80) }
+    }
+
+    override suspend fun setProfileImagePath(path: String?) {
+        context.ledgerLeafDataStore.edit {
+            if (path.isNullOrBlank()) it.remove(Keys.profileImagePath) else it[Keys.profileImagePath] = path
+        }
+    }
+
     override suspend fun restorePreferences(preferences: AppPreferences) {
         context.ledgerLeafDataStore.edit { values ->
             values[Keys.themeMode] = preferences.themeMode.name
@@ -89,6 +105,7 @@ class DataStoreSettingsRepository @Inject constructor(
             values[Keys.monthStartDay] = preferences.monthStartDay.coerceIn(1, 28)
             values[Keys.pdfIncludeTransactions] = preferences.pdfIncludeTransactions
             values[Keys.pdfIncludeNotes] = preferences.pdfIncludeNotes
+            values[Keys.displayName] = preferences.displayName
         }
     }
 }

@@ -9,5 +9,7 @@ data class AppPreferences(
     val monthlyIncomeMinor: Long? = null,
     val monthStartDay: Int = 1,
     val pdfIncludeTransactions: Boolean = true,
-    val pdfIncludeNotes: Boolean = true
+    val pdfIncludeNotes: Boolean = true,
+    val displayName: String = "",
+    val profileImagePath: String? = null
 )

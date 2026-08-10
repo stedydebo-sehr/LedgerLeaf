@@ -42,7 +42,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 @Composable
-fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
+fun ReportsScreen(
+    embedded: Boolean = false,
+    viewModel: ReportsViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var startText by remember(state.startDate) { mutableStateOf(state.startDate.toString()) }
     var endText by remember(state.endDate) { mutableStateOf(state.endDate.toString()) }
@@ -60,7 +63,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        LedgerLeafTopBar("Reports")
+        if (!embedded) LedgerLeafTopBar("Reports")
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -116,15 +119,15 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else {
-            ReportContent(report)
+            ReportContent(report, embedded)
         }
         SnackbarHost(snackbarHostState)
     }
 }
 
 @Composable
-private fun ReportContent(report: ExpenseReport) {
-    LazyColumn(Modifier.fillMaxSize().imePadding()) {
+private fun ReportContent(report: ExpenseReport, embedded: Boolean) {
+    LazyColumn(if (embedded) Modifier.fillMaxSize() else Modifier.fillMaxSize().imePadding()) {
         item {
             Surface(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),

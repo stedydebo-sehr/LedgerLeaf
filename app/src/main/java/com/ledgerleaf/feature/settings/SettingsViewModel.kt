@@ -1,11 +1,14 @@
 package com.ledgerleaf.feature.settings
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ledgerleaf.core.datastore.ThemeMode
 import com.ledgerleaf.domain.model.AppPreferences
 import com.ledgerleaf.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +23,8 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: SettingsRepository
+    private val repository: SettingsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     val preferences: StateFlow<AppPreferences> = repository.preferences.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences()
@@ -74,6 +78,36 @@ class SettingsViewModel @Inject constructor(
     fun setMonthStartDay(day: Int) = viewModelScope.launch { repository.setMonthStartDay(day) }
     fun setPdfIncludeTransactions(include: Boolean) = viewModelScope.launch { repository.setPdfIncludeTransactions(include) }
     fun setPdfIncludeNotes(include: Boolean) = viewModelScope.launch { repository.setPdfIncludeNotes(include) }
+
+
+
+    fun setDisplayName(name: String) = viewModelScope.launch {
+        repository.setDisplayName(name)
+        _uiState.value = SettingsUiState(message = "Profile name saved.")
+    }
+
+    fun importProfileImage(uri: Uri) = viewModelScope.launch {
+        runCatching {
+            val profileDir = java.io.File(context.filesDir, "profile").apply { mkdirs() }
+            val target = java.io.File(profileDir, "profile_image")
+            context.contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "Unable to open selected image." }
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            repository.setProfileImagePath(target.absolutePath)
+        }.onSuccess {
+            _uiState.value = SettingsUiState(message = "Profile picture saved.")
+        }.onFailure {
+            _uiState.value = SettingsUiState(error = "Unable to save profile picture.")
+        }
+    }
+
+    fun clearProfileImage() = viewModelScope.launch {
+        val current = preferences.value.profileImagePath
+        if (!current.isNullOrBlank()) runCatching { java.io.File(current).delete() }
+        repository.setProfileImagePath(null)
+        _uiState.value = SettingsUiState(message = "Profile picture removed.")
+    }
 
     fun clearFeedback() {
         _uiState.value = SettingsUiState()

@@ -46,13 +46,14 @@ import java.time.ZoneId
 @Composable
 fun SearchScreen(
     onExpenseClick: (String) -> Unit = {},
+    embedded: Boolean = false,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize()) {
-        LedgerLeafTopBar("Search & Filters")
-        LazyColumn(Modifier.fillMaxSize().imePadding()) {
+        if (!embedded) LedgerLeafTopBar("Search & Filters")
+        LazyColumn(if (embedded) Modifier.fillMaxSize() else Modifier.fillMaxSize().imePadding()) {
             item {
                 SearchControls(state, viewModel)
             }
